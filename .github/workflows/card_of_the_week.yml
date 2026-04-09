@@ -2,10 +2,10 @@ name: Card of the Week
  
 on:
   schedule:
-    # Runs every Monday at 3:00 PM UTC (10 AM Eastern / 9 AM Central)
+    # Runs every Monday at 6:00 PM UTC (2PM Eastern / 1 PM Central)
     # Adjust this cron string to whatever day/time you prefer:
     # https://crontab.guru is handy for this
-    - cron: "0 15 * * 1"
+    - cron: "0 18 * * 1"
  
   # Allows you to trigger a test run manually from the GitHub Actions tab
   workflow_dispatch:

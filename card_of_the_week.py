@@ -134,7 +134,7 @@ def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
     trophy_str = f" 🏆 {trophies} {'trophy' if trophies == 1 else 'trophies'}"
     return (f"Match: {match_wr}% ({mw}W–{ml}L) | "
             f"Game: {game_wr}% ({gw}W–{gl}L) | "
-            f"{decks} deck{'s' if decks != 1 else ''}{trophy_str}")
+            f"{decks} deck{'s' if decks != 1 else ''} | {trophy_str}")
 
 
 def format_combos(oracle_id: str, combos: list[dict], all_cards: list[dict]) -> list[str]:

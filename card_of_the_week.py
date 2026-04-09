@@ -94,8 +94,6 @@ def fetch_combos(oracle_ids: list[str]) -> list[dict]:
     data = resp.json()
     # Response is either a list of combos or {"combos": [...]}
     combos = data if isinstance(data, list) else data.get("combos", [])
-    if combos:
-        print("DEBUG first combo object:", json.dumps(combos[0], indent=2))
     return combos
 
 
@@ -135,29 +133,16 @@ def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
 
 
 def format_combos(oracle_id: str, combos: list[dict], all_cards: list[dict]) -> list[str]:
-    """
-    Return a list of combo description strings involving this card.
-    Each string is one combo line.
-    """
-    # Build a lookup of oracle_id -> card name for pretty printing
-    oracle_to_name = {}
-    for c in all_cards:
-        oid = c.get("details", {}).get("oracle_id") or c.get("cardID")
-        name = c.get("details", {}).get("name", "Unknown")
-        if oid:
-            oracle_to_name[oid] = name
-
     results = []
     for combo in combos:
-        # Combo Cobra combo objects vary — try common field names
-        pieces = combo.get("cards") or combo.get("oracles") or combo.get("requires") or []
-        if oracle_id not in pieces:
+        uses = combo.get("uses", [])
+        piece_oracle_ids = [u["card"]["oracleId"] for u in uses if "card" in u]
+        if oracle_id not in piece_oracle_ids:
             continue
-        result = combo.get("result") or combo.get("description") or combo.get("name") or "Combo"
-        # Build a readable piece list (name if we have it, else truncated ID)
-        piece_names = [oracle_to_name.get(p, p[:8] + "…") for p in pieces]
+        piece_names = [u["card"]["name"] for u in uses if "card" in u]
+        produces = combo.get("produces", [])
+        result = ", ".join(p["feature"]["name"] for p in produces) if produces else combo.get("description", "Unknown effect")
         results.append(f"**{' + '.join(piece_names)}** → {result}")
-
     return results
 
 

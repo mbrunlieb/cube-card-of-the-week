@@ -1,0 +1,32 @@
+name: Card of the Week
+ 
+on:
+  schedule:
+    # Runs every Monday at 3:00 PM UTC (10 AM Eastern / 9 AM Central)
+    # Adjust this cron string to whatever day/time you prefer:
+    # https://crontab.guru is handy for this
+    - cron: "0 15 * * 1"
+ 
+  # Allows you to trigger a test run manually from the GitHub Actions tab
+  workflow_dispatch:
+ 
+jobs:
+  post-card:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+ 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+ 
+      - name: Install dependencies
+        run: pip install requests
+ 
+      - name: Run card of the week script
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python card_of_the_week.py

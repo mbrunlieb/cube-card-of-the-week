@@ -203,7 +203,11 @@ def main():
     print(f"Found {len(cards)} mainboard cards.")
 
     print("Fetching winrate data…")
-    winrate_data = fetch_winrate_data()
+    try:
+        winrate_data = fetch_winrate_data()
+    except Exception as e:
+        print(f"Warning: could not fetch winrate data: {e}")
+        winrate_data = {}
 
     print("Picking a random card…")
     card = pick_random_card(cards)

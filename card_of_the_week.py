@@ -3,6 +3,7 @@
 Card of the Week bot for MTG Cube Discord.
 Picks a random card from the cube, fetches winrate and combo data,
 and posts an embed to Discord via webhook.
+Tracks history to avoid repeats until all cards have been featured.
 """
 
 import json
@@ -18,6 +19,7 @@ import requests
 CUBE_ID = "tm1"
 CUBE_RECORDS_ID = "60ba7b55a2494110485dc479"
 DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
+HISTORY_FILE = "history.json"
 
 CUBE_JSON_URL = f"https://cubecobra.com/cube/api/cubeJSON/{CUBE_ID}"
 CUBE_RECORDS_URL = f"https://cubecobra.com/cube/records/{CUBE_RECORDS_ID}?view=winrate-analytics"
@@ -28,6 +30,28 @@ HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0"}
 # Minimum number of decks a card must appear in to show winrate.
 # Set to 0 to always show (even with tiny sample sizes).
 MIN_DECKS_FOR_WINRATE = 2
+
+# ── History tracking ──────────────────────────────────────────────────────────
+
+def load_history() -> list[str]:
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    with open(HISTORY_FILE, "r") as f:
+        data = json.load(f)
+    return data.get("chosen", [])
+
+
+def save_history(history: list[str], card_name: str):
+    data = {
+        "chosen": history,
+        "last_updated": datetime.utcnow().isoformat(),
+        "last_card": card_name,
+        "total_chosen": len(history),
+    }
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"History saved: {len(history)} cards chosen so far.")
+
 
 # ── Data fetching ─────────────────────────────────────────────────────────────
 
@@ -48,14 +72,10 @@ def fetch_winrate_data():
     Scrape the records page HTML and extract the winrate JSON blob.
     Returns a dict keyed by oracle_id -> {decks, matchWins, matchLosses, ...}
     """
-    resp = requests.get(CUBE_RECORDS_URL, headers=HEADERS, timeout=30)
+    resp = requests.get(CUBE_RECORDS_URL, headers=HEADERS, timeout=60)
     resp.raise_for_status()
     html = resp.text
 
-    # The winrate data is a JSON object whose keys are oracle UUIDs.
-    # We find it by looking for the pattern "cardAnalytics":{...} or
-    # a large block of UUID-keyed objects in the embedded JS state.
-    # Strategy: find the first occurrence of a UUID-keyed JSON object.
     uuid_pattern = re.compile(
         r'(\{"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"\s*:\s*\{"decks")',
     )
@@ -65,7 +85,6 @@ def fetch_winrate_data():
         return {}
 
     start = match.start()
-    # Walk forward to find the matching closing brace for this top-level object.
     depth = 0
     end = start
     for i, ch in enumerate(html[start:], start=start):
@@ -92,15 +111,18 @@ def fetch_combos(oracle_ids: list[str]) -> list[dict]:
     resp = requests.post(COMBOS_URL, json=payload, headers=HEADERS, timeout=30)
     resp.raise_for_status()
     data = resp.json()
-    # Response is either a list of combos or {"combos": [...]}
     combos = data if isinstance(data, list) else data.get("combos", [])
     return combos
 
 
 # ── Card selection ─────────────────────────────────────────────────────────────
 
-def pick_random_card(cards: list[dict]) -> dict:
-    """Pick a random card, excluding lands unless tagged 'spotlight'."""
+def pick_random_card(cards: list[dict], history: list[str]) -> tuple[dict, bool]:
+    """
+    Pick a random eligible card not in history.
+    Excludes lands unless tagged 'spotlight'.
+    Returns (card, history_was_reset).
+    """
     def is_eligible(c):
         type_line = c.get("details", {}).get("type", "")
         tags = [t.lower() for t in c.get("tags", [])]
@@ -111,7 +133,19 @@ def pick_random_card(cards: list[dict]) -> dict:
     eligible = [c for c in cards if is_eligible(c)]
     if not eligible:
         eligible = cards  # fallback
-    return random.choice(eligible)
+
+    unseen = [
+        c for c in eligible
+        if c.get("details", {}).get("oracle_id", "") not in history
+    ]
+
+    history_reset = False
+    if not unseen:
+        print("All eligible cards have been featured! Resetting history.")
+        unseen = eligible
+        history_reset = True
+
+    return random.choice(unseen), history_reset
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
@@ -156,7 +190,7 @@ def format_combos(oracle_id: str, combos: list[dict], all_cards: list[dict]) -> 
 
 # ── Discord posting ───────────────────────────────────────────────────────────
 
-def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str]):
+def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str], history_reset: bool):
     details = card.get("details", {})
     name = details.get("name", "Unknown Card")
     image_url = details.get("image_normal") or details.get("image_small", "")
@@ -171,7 +205,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
 
     if combo_lines:
         desc_parts.append("")
-        desc_parts.append(f"👹 **Combos in our cube({len(combo_lines)}):**")
+        desc_parts.append(f"👹 **Combos in our cube ({len(combo_lines)}):**")
         for line in combo_lines[:5]:
             desc_parts.append(f"• {line}")
         if len(combo_lines) > 5:
@@ -188,8 +222,12 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
     if scryfall_uri:
         embed["url"] = scryfall_uri
 
+    intro = "🧝 **SCROLL of the week!!** 🧙\nSPEAK WIZARD! \nLOVETH thee this incantation, or dost thou HATETH it??"
+    if history_reset:
+        intro += "\n*Every card has been featured — starting a fresh cycle!* 🔄"
+
     payload = {
-        "content": "🧝 **SCROLL of the week!!** 🧙\nSPEAK WIZARD! \nLOVETH thee this incantation, or dost thou HATETH it??",
+        "content": intro,
         "embeds": [embed],
     }
 
@@ -201,6 +239,10 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    print("Loading history…")
+    history = load_history()
+    print(f"Cards previously chosen: {len(history)}")
+
     print("Fetching cube card list…")
     cards = fetch_cube_cards()
     print(f"Found {len(cards)} mainboard cards.")
@@ -213,7 +255,7 @@ def main():
         winrate_data = {}
 
     print("Picking a random card…")
-    card = pick_random_card(cards)
+    card, history_reset = pick_random_card(cards, history)
     details = card.get("details", {})
     name = details.get("name", "Unknown")
     oracle_id = details.get("oracle_id", "")
@@ -234,7 +276,14 @@ def main():
     print(f"Combos involving this card: {len(combo_lines)}")
 
     print("Posting to Discord…")
-    post_to_discord(card, winrate_str, combo_lines)
+    post_to_discord(card, winrate_str, combo_lines, history_reset)
+
+    if history_reset:
+        history = [oracle_id]
+    else:
+        history.append(oracle_id)
+    save_history(history, name)
+
     print("Done!")
 
 

@@ -168,7 +168,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
 
     if combo_lines:
         desc_parts.append("")
-        desc_parts.append(f"⚡ **Combos in this cube ({len(combo_lines)}):**")
+        desc_parts.append(f"👹 **Combos in our cube({len(combo_lines)}):**")
         for line in combo_lines[:5]:
             desc_parts.append(f"• {line}")
         if len(combo_lines) > 5:

@@ -100,14 +100,17 @@ def fetch_combos(oracle_ids: list[str]) -> list[dict]:
 # ── Card selection ─────────────────────────────────────────────────────────────
 
 def pick_random_card(cards: list[dict]) -> dict:
-    """Pick a random card, skipping basic lands."""
-    eligible = [
-        c for c in cards
-        if c.get("details", {}).get("type", "").lower() not in ("basic land", "")
-        and "Basic Land" not in c.get("details", {}).get("type", "")
-    ]
+    """Pick a random card, excluding lands unless tagged 'spotlight'."""
+    def is_eligible(c):
+        type_line = c.get("details", {}).get("type", "")
+        tags = [t.lower() for t in c.get("tags", [])]
+        if "Land" in type_line:
+            return "spotlight" in tags
+        return True
+
+    eligible = [c for c in cards if is_eligible(c)]
     if not eligible:
-        eligible = cards  # fallback: pick from everything
+        eligible = cards  # fallback
     return random.choice(eligible)
 
 

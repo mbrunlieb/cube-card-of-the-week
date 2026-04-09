@@ -93,9 +93,10 @@ def fetch_combos(oracle_ids: list[str]) -> list[dict]:
     resp.raise_for_status()
     data = resp.json()
     # Response is either a list of combos or {"combos": [...]}
-    if isinstance(data, list):
-        return data
-    return data.get("combos", [])
+    combos = data if isinstance(data, list) else data.get("combos", [])
+    if combos:
+        print("DEBUG first combo object:", json.dumps(combos[0], indent=2))
+    return combos
 
 
 # ── Card selection ─────────────────────────────────────────────────────────────

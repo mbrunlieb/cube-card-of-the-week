@@ -186,7 +186,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
         embed["url"] = scryfall_uri
 
     payload = {
-        "content": "🧝 **SCROLL of the week!!** 🧙\nSPEAK WIZARD! LOVETH thee this incantation, or dost thee HATETH it??",
+        "content": "🧝 **SCROLL of the week!!** 🧙\nSPEAK WIZARD! \nLOVETH thee this incantation, \nor dost thee HATETH it??",
         "embeds": [embed],
     }
 

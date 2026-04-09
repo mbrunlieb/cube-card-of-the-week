@@ -33,7 +33,7 @@ MIN_DECKS_FOR_WINRATE = 2
 
 def fetch_cube_cards():
     """Return list of card dicts from the Cube Cobra cube JSON endpoint."""
-    resp = requests.get(CUBE_JSON_URL, headers=HEADERS, timeout=30)
+    resp = requests.get(CUBE_JSON_URL, headers=HEADERS, timeout=60)
     resp.raise_for_status()
     data = resp.json()
     # Cards live under data["cards"]["mainboard"]

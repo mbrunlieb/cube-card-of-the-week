@@ -114,7 +114,6 @@ def pick_random_card(cards: list[dict]) -> dict:
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
 def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
-    """Return a formatted winrate string, or None if data is missing/thin."""
     stats = winrate_data.get(oracle_id)
     if not stats:
         return None
@@ -127,9 +126,15 @@ def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
     if total_matches == 0:
         return None
     match_wr = round(100 * mw / total_matches, 1)
+    gw = stats.get("gameWins", 0)
+    gl = stats.get("gameLosses", 0)
+    total_games = gw + gl
+    game_wr = round(100 * gw / total_games, 1) if total_games > 0 else 0
     trophies = stats.get("trophies", 0)
-    trophy_str = f" 🏆 {trophies} trophy{'s' if trophies != 1 else ''}" if trophies else ""
-    return f"{match_wr}% match win rate ({mw}W–{ml}L across {decks} deck{'s' if decks != 1 else ''}){trophy_str}"
+    trophy_str = f" 🏆 {trophies} trophy{'s' if trophies != 1 else ''}"
+    return (f"Match: {match_wr}% ({mw}W–{ml}L) | "
+            f"Game: {game_wr}% ({gw}W–{gl}L) | "
+            f"{decks} deck{'s' if decks != 1 else ''}{trophy_str}")
 
 
 def format_combos(oracle_id: str, combos: list[dict], all_cards: list[dict]) -> list[str]:
@@ -153,18 +158,8 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
     name = details.get("name", "Unknown Card")
     image_url = details.get("image_normal") or details.get("image_small", "")
     scryfall_uri = details.get("scryfall_uri", "")
-    type_line = details.get("type", "")
-    oracle_text = details.get("oracle_text", "")
-    mana_cost = details.get("parsed_cost", [])
-    cmc = details.get("cmc", "")
-    rarity = details.get("rarity", "").capitalize()
-    set_name = details.get("set_name", "")
 
-    # Build embed description
     desc_parts = []
-    if oracle_text:
-        desc_parts.append(f"*{oracle_text}*")
-    desc_parts.append("")  # blank line
 
     if winrate_str:
         desc_parts.append(f"📊 **Winrate:** {winrate_str}")
@@ -174,42 +169,21 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
     if combo_lines:
         desc_parts.append("")
         desc_parts.append(f"⚡ **Combos in this cube ({len(combo_lines)}):**")
-        for line in combo_lines[:5]:  # cap at 5 to avoid huge posts
+        for line in combo_lines[:5]:
             desc_parts.append(f"• {line}")
         if len(combo_lines) > 5:
             desc_parts.append(f"*…and {len(combo_lines) - 5} more*")
 
     description = "\n".join(desc_parts)
 
-    # Rarity colour for embed sidebar
-    rarity_colors = {
-        "Common": 0x808080,
-        "Uncommon": 0xC0C0C0,
-        "Rare": 0xFFD700,
-        "Mythic": 0xFF6600,
-        "Special": 0x9B59B6,
-    }
-    color = rarity_colors.get(rarity, 0x5865F2)
-
-    week_str = datetime.utcnow().strftime("Week of %B %d, %Y")
-
     embed = {
         "title": f"🃏 SCROLL of the Weeke — {name}",
         "description": description,
-        "color": color,
+        "color": 0x5865F2,
         "image": {"url": image_url},
-        "footer": {
-            "text": f"{type_line} • {rarity} • {set_name} • {week_str}"
-        },
     }
     if scryfall_uri:
         embed["url"] = scryfall_uri
-
-    fields = []
-    if cmc != "":
-        fields.append({"name": "CMC", "value": str(cmc), "inline": True})
-    if fields:
-        embed["fields"] = fields
 
     payload = {
         "content": "📬 **SCROLL of the week!!** SPEAK WIZARD! Dost thou LOVETH this incantation, or HATETH it??",

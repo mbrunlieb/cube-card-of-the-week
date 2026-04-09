@@ -208,7 +208,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
     week_str = datetime.utcnow().strftime("Week of %B %d, %Y")
 
     embed = {
-        "title": f"🃏 Card of the Week — {name}",
+        "title": f"🃏 SCROLL of the Weeke — {name}",
         "description": description,
         "color": color,
         "image": {"url": image_url},
@@ -226,7 +226,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
         embed["fields"] = fields
 
     payload = {
-        "content": "📬 **This week's cube card spotlight!** What do you think — snap first pick, or does it depend?",
+        "content": "📬 **SCROLL of the week!!** SPEAK WIZARD! Dost thou LOVETH this incantation, or HATETH it??",
         "embeds": [embed],
     }
 

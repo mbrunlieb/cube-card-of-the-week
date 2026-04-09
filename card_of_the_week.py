@@ -177,7 +177,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str])
     description = "\n".join(desc_parts)
 
     embed = {
-        "title": f"🃏 SCROLL of the Weeke — {name}",
+        "title": f"🃏 {name}",
         "description": description,
         "color": 0x5865F2,
         "image": {"url": image_url},

@@ -131,7 +131,7 @@ def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
     total_games = gw + gl
     game_wr = round(100 * gw / total_games, 1) if total_games > 0 else 0
     trophies = stats.get("trophies", 0)
-    trophy_str = f" 🏆 {trophies} trophy{'s' if trophies != 1 else ''}"
+    trophy_str = f" 🏆 {trophies} {'trophy' if trophies == 1 else 'trophies'}"
     return (f"Match: {match_wr}% ({mw}W–{ml}L) | "
             f"Game: {game_wr}% ({gw}W–{gl}L) | "
             f"{decks} deck{'s' if decks != 1 else ''}{trophy_str}")

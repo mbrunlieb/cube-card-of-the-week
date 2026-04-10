@@ -3,7 +3,7 @@ name: Card of the Week
 on:
   schedule:
     # Runs every Monday at 6:00 PM UTC (1 PM CDT / 12 PM CST)
-    - cron: "0 18 * * 1"
+    - cron: "0 18 * * 1,5"
 
   # Allows you to trigger a test run manually from the GitHub Actions tab
   workflow_dispatch:

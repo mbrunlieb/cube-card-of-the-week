@@ -229,7 +229,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
         "answers": [
             {"poll_media": {"text": "I will PIVOT HARD anytime I see this card", "emoji": {"name": "💎"}}},
             {"poll_media": {"text": "Alright, I am pretty happy to take this P1P1", "emoji": {"name": "🚬"}}},
-            {"poll_media": {"text": "Sure! Won't complain out loud about this MID-PACK material", "emoji": {"name": "🥣"}}},
+            {"poll_media": {"text": "MID-PACK ass behavior on display", "emoji": {"name": "🥣"}}},
             {"poll_media": {"text": "Eh, maybe on the wheel?", "emoji": {"name": "🎡"}}},
             {"poll_media": {"text": "Can we please cut this?", "emoji": {"name": "🚱"}}},
         ],

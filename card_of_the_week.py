@@ -244,7 +244,13 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
         "poll": poll,
     }
 
-    resp = requests.post(DISCORD_WEBHOOK_URL + "?wait=true", json=payload, timeout=15)
+        resp = requests.post(
+        DISCORD_WEBHOOK_URL + "?wait=true",
+        json=payload,
+        headers={**HEADERS, "X-Discord-Api-Version": "10"},
+        timeout=15
+    )
+
     if not resp.ok:
         print(f"Discord error response: {resp.text}")
     else:

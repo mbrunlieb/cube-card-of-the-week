@@ -10,7 +10,6 @@ import json
 import os
 import random
 import re
-import sys
 from datetime import datetime
 
 import requests
@@ -18,7 +17,8 @@ import requests
 # ── Config ────────────────────────────────────────────────────────────────────
 CUBE_ID = "tm1"
 CUBE_RECORDS_ID = "60ba7b55a2494110485dc479"
-DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
+DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
+DISCORD_CHANNEL_ID = os.environ["DISCORD_CHANNEL_ID"]
 HISTORY_FILE = "history.json"
 
 CUBE_JSON_URL = f"https://cubecobra.com/cube/api/cubeJSON/{CUBE_ID}"
@@ -26,9 +26,9 @@ CUBE_RECORDS_URL = f"https://cubecobra.com/cube/records/{CUBE_RECORDS_ID}?view=w
 COMBOS_URL = "https://cubecobra.com/cube/api/getcombos"
 
 HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0"}
+DISCORD_API = "https://discord.com/api/v10"
 
 # Minimum number of decks a card must appear in to show winrate.
-# Set to 0 to always show (even with tiny sample sizes).
 MIN_DECKS_FOR_WINRATE = 2
 
 # ── History tracking ──────────────────────────────────────────────────────────
@@ -60,7 +60,6 @@ def fetch_cube_cards():
     resp = requests.get(CUBE_JSON_URL, headers=HEADERS, timeout=60)
     resp.raise_for_status()
     data = resp.json()
-    # Cards live under data["cards"]["mainboard"]
     cards = data.get("cards", {}).get("mainboard", [])
     if not cards:
         raise ValueError("No mainboard cards found in cube JSON response.")
@@ -81,7 +80,7 @@ def fetch_winrate_data():
     )
     match = uuid_pattern.search(html)
     if not match:
-        print("Warning: could not locate winrate data in page source. Winrate will be skipped.")
+        print("Warning: could not locate winrate data in page source.")
         return {}
 
     start = match.start()
@@ -132,7 +131,7 @@ def pick_random_card(cards: list[dict], history: list[str]) -> tuple[dict, bool]
 
     eligible = [c for c in cards if is_eligible(c)]
     if not eligible:
-        eligible = cards  # fallback
+        eligible = cards
 
     unseen = [
         c for c in eligible
@@ -238,23 +237,21 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
         "allow_multiselect": False,
     }
 
+    bot_headers = {
+        "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
     payload = {
         "content": intro,
         "embeds": [embed],
         "poll": poll,
     }
 
-    resp = requests.post(
-        DISCORD_WEBHOOK_URL + "?wait=true",
-        json=payload,
-        headers={**HEADERS, "X-Discord-Api-Version": "10"},
-        timeout=15
-        )
-
+    url = f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages"
+    resp = requests.post(url, json=payload, headers=bot_headers, timeout=15)
     if not resp.ok:
         print(f"Discord error response: {resp.text}")
-    else:
-        print(f"Discord response: {resp.text}")
     resp.raise_for_status()
     print(f"Posted '{name}' to Discord. Status: {resp.status_code}")
 

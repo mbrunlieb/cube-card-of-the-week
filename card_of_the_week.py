@@ -225,7 +225,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
         intro += "\n*Every card has been featured — starting a fresh cycle!* 🔄"
 
     poll = {
-        "question": {"text": f"LOVETH thee **{name}**? or dost thou HATETH it??"},
+        "question": {"text": f"LOVETH thee: {name}? or dost thou HATETH it??"},
         "answers": [
             {"poll_media": {"text": "I will PIVOT HARD anytime I see this card", "emoji": {"name": "💎"}}},
             {"poll_media": {"text": "Alright, I am pretty happy to take this P1P1", "emoji": {"name": "🚬"}}},

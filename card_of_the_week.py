@@ -197,7 +197,6 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
     scryfall_uri = details.get("scryfall_uri", "")
 
     desc_parts = []
-
     if winrate_str:
         desc_parts.append(f"📊 **Winrate:** {winrate_str}")
     else:
@@ -226,9 +225,23 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
     if history_reset:
         intro += "\n*Every card has been featured — starting a fresh cycle!* 🔄"
 
+    poll = {
+        "question": {"text": f"How do you feel about {name}?"},
+        "answers": [
+            {"poll_media": {"text": "I will PIVOT HARD anytime I see this card", "emoji": {"name": "💎"}}},
+            {"poll_media": {"text": "Alright, I am pretty happy to take this P1P1", "emoji": {"name": "🚬"}}},
+            {"poll_media": {"text": "Sure! Won't complain out loud about this MID-PACK material", "emoji": {"name": "🥣"}}},
+            {"poll_media": {"text": "Eh, maybe on the wheel?", "emoji": {"name": "🎡"}}},
+            {"poll_media": {"text": "Can we please cut this?", "emoji": {"name": "🚱"}}},
+        ],
+        "duration": 36,
+        "allow_multiselect": False,
+    }
+
     payload = {
         "content": intro,
         "embeds": [embed],
+        "poll": poll,
     }
 
     resp = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)

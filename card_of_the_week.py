@@ -244,9 +244,11 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
         "poll": poll,
     }
 
-    resp = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
+    resp = requests.post(DISCORD_WEBHOOK_URL + "?wait=true", json=payload, timeout=15)
     if not resp.ok:
         print(f"Discord error response: {resp.text}")
+    else:
+        print(f"Discord response: {resp.text}")
     resp.raise_for_status()
     print(f"Posted '{name}' to Discord. Status: {resp.status_code}")
 

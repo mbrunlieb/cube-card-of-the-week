@@ -1,3 +1,11 @@
 {
-  "matchups": []
+  "matchups": [
+    [
+      "deck_images_2026_February_AlliD_jpg",
+      "deck_images_2026_March_TannerG_jpg"
+    ]
+  ],
+  "last_updated": "2026-04-22T21:19:53.112784",
+  "last_matchup": "TannerGold vs Alli D",
+  "total_matchups": 1
 }

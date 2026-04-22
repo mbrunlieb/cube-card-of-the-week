@@ -166,8 +166,8 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
         return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
 
     content_lines = [
-        "🏆 **TROPHY BATTLE!!** 🏆",
-        "Two undefeated decks enter. Only one can be crowned the greatest.",
+        "⚔️ **CLASH OF THE WISE!!** ⚔️",
+        "Two flawless tomes of unparalleled power (trophy decks) lay before ye...",
         "",
         format_deck_info(deck_a, "Deck A"),
         "",
@@ -180,7 +180,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
     content = "\n".join(content_lines)
 
     poll = {
-        "question": {"text": "Twoe shimmering grimores lay before ye on a silken bed: whiche do ye choose?"},
+        "question": {"text": "Whiche do ye choose?"},
         "answers": [
             {"poll_media": {"text": f"Deck A — {deck_a['drafter']}", "emoji": {"name": "🅰️"}}},
             {"poll_media": {"text": f"Deck B — {deck_b['drafter']}", "emoji": {"name": "🅱️"}}},
@@ -213,7 +213,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
 
     # Fetch deck images
     files = {}
-    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**\n🅱️ **Deck B — {deck_b['drafter']}**"
+    form_content = f"🅰️ **Deck A — {deck_a['drafter']}** VS 🅱️ **Deck B — {deck_b['drafter']}**"
 
     try:
         img_a = requests.get(image_url_a, timeout=15)

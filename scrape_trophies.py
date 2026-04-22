@@ -33,20 +33,15 @@ def fetch_trophy_archive() -> list[dict]:
     resp.raise_for_status()
     html = resp.text
 
-    # Find the embedded JSON blob containing event/draft data
-    # Look for the pattern that contains "trophy" arrays
-    pattern = re.compile(r'\{[^{}]*"trophy"\s*:\s*\[[^\]]+\][^{}]*"draft"\s*:\s*"[^"]+\"[^{}]*\}')
-    
-    # Better approach: find the large JSON array containing all records
-    # Look for array of objects with "draft" and "trophy" fields
-    records_pattern = re.compile(r'\[\s*\{[^[]*?"trophy"\s*:\s*\[')
-    match = records_pattern.search(html)
-    
+    # The records are embedded as a JSON array in the page source
+    # Find it by looking for the pattern [{"id":"...","cube":"...
+    pattern = re.compile(r'\[\{"id":"[0-9a-f\-]+","cube":"[0-9a-f\-]+"')
+    match = pattern.search(html)
+
     if not match:
         print("Warning: could not find trophy data in page source.")
         return []
 
-    # Walk back to find the start of the array
     start = match.start()
     depth = 0
     end = start
@@ -87,7 +82,6 @@ def fetch_trophy_archive() -> list[dict]:
 
     print(f"Found {len(entries)} trophy deck entries in archive.")
     return entries
-
 
 # ── Merging ───────────────────────────────────────────────────────────────────
 

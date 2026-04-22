@@ -4,6 +4,7 @@ Trophy scraper for MTG Cube Discord.
 Scrapes the Cube Cobra trophy archive and updates trophy_decks.json
 with any new trophy decks found. Existing entries are preserved.
 New entries without images are added with image: null as placeholders.
+Also captures the seat index for each drafter for decklist fetching.
 """
 
 import json
@@ -14,7 +15,6 @@ from datetime import datetime
 import requests
 
 # ── Config ────────────────────────────────────────────────────────────────────
-CUBE_ID = "tm1"
 CUBE_RECORDS_ID = "60ba7b55a2494110485dc479"
 TROPHY_DECKS_FILE = "trophy_decks.json"
 
@@ -27,14 +27,13 @@ HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0"}
 def fetch_trophy_archive() -> list[dict]:
     """
     Scrape the trophy archive page and extract all trophy deck entries.
-    Returns list of dicts with drafter, event, date, cubecobra_draft_id.
+    Returns list of dicts with drafter, event, date, cubecobra_draft_id, seat.
     """
     resp = requests.get(TROPHY_ARCHIVE_URL, headers=HEADERS, timeout=60)
     resp.raise_for_status()
     html = resp.text
 
-    # The records are embedded as a JSON array in the page source
-    # Find it by looking for the pattern [{"id":"...","cube":"...
+    # Find the embedded JSON array containing all records
     pattern = re.compile(r'\[\{"id":"[0-9a-f\-]+","cube":"[0-9a-f\-]+"')
     match = pattern.search(html)
 
@@ -71,17 +70,24 @@ def fetch_trophy_archive() -> list[dict]:
         date_ms = record.get("date") or record.get("dateCreated", 0)
         date_str = datetime.utcfromtimestamp(date_ms / 1000).strftime("%Y-%m-%d") if date_ms else "Unknown"
 
+        # Build a lookup of player name -> seat index from the players array
+        players = record.get("players", [])
+        player_to_seat = {p.get("name", ""): i for i, p in enumerate(players)}
+
         for player in trophy_players:
+            seat = player_to_seat.get(player, 0)
             entries.append({
                 "drafter": player,
                 "event": event_name,
                 "date": date_str,
                 "cubecobra_draft_id": draft_id,
+                "seat": seat,
                 "image": None,
             })
 
     print(f"Found {len(entries)} trophy deck entries in archive.")
     return entries
+
 
 # ── Merging ───────────────────────────────────────────────────────────────────
 
@@ -96,10 +102,9 @@ def merge_entries(existing: list[dict], scraped: list[dict]) -> tuple[list[dict]
     """
     Merge scraped entries into existing list.
     Matches on cubecobra_draft_id + drafter to avoid duplicates.
-    Preserves image paths from existing entries.
-    Returns (merged_list, new_count).
+    Preserves image paths and any manual edits from existing entries.
+    Updates seat index if it was missing.
     """
-    # Build lookup of existing entries
     existing_keys = {
         (e.get("cubecobra_draft_id", ""), e.get("drafter", "")): i
         for i, e in enumerate(existing)
@@ -110,10 +115,15 @@ def merge_entries(existing: list[dict], scraped: list[dict]) -> tuple[list[dict]
 
     for entry in scraped:
         key = (entry.get("cubecobra_draft_id", ""), entry.get("drafter", ""))
-        if key not in existing_keys:
+        if key in existing_keys:
+            # Update seat index if missing from existing entry
+            idx = existing_keys[key]
+            if "seat" not in merged[idx]:
+                merged[idx]["seat"] = entry["seat"]
+        else:
             merged.append(entry)
             new_count += 1
-            print(f"  + New entry: {entry['drafter']} — {entry['event']} ({entry['date']})")
+            print(f"  + New entry: {entry['drafter']} — {entry['event']} ({entry['date']}) seat={entry['seat']}")
 
     return merged, new_count
 
@@ -121,27 +131,26 @@ def merge_entries(existing: list[dict], scraped: list[dict]) -> tuple[list[dict]
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    print("Fetching trophy archive from Cube Cobra…")
+    print("Fetching trophy archive from Cube Cobra...")
     scraped = fetch_trophy_archive()
 
     if not scraped:
         print("No trophy data found. Exiting.")
         return
 
-    print(f"Loading existing {TROPHY_DECKS_FILE}…")
+    print(f"Loading existing {TROPHY_DECKS_FILE}...")
     existing = load_existing(TROPHY_DECKS_FILE)
     print(f"Existing entries: {len(existing)}")
 
-    print("Merging entries…")
+    print("Merging entries...")
     merged, new_count = merge_entries(existing, scraped)
 
-    print(f"Saving {TROPHY_DECKS_FILE}…")
+    print(f"Saving {TROPHY_DECKS_FILE}...")
     with open(TROPHY_DECKS_FILE, "w") as f:
         json.dump(merged, f, indent=2)
 
     print(f"Done! {new_count} new entries added. Total: {len(merged)} trophy decks.")
 
-    # Summary of entries missing images
     missing_images = [e for e in merged if not e.get("image")]
     if missing_images:
         print(f"\n{len(missing_images)} entries still need images:")

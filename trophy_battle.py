@@ -179,9 +179,6 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
 
     content = "\n".join(content_lines)
 
-    image_url_a = f"{GITHUB_RAW_BASE}/{deck_a['image']}"
-    image_url_b = f"{GITHUB_RAW_BASE}/{deck_b['image']}"
-
     poll = {
         "question": {"text": "Twoe shimmering grimores lay before ye on a silken bed: whiche do ye choose?"},
         "answers": [
@@ -192,27 +189,14 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
         "allow_multiselect": False,
     }
 
-    embeds = [
-        {
-            "title": f"🅰️ {deck_a['drafter']} — {deck_a['event']}",
-            "color": 0xFFD700,
-            "image": {"url": image_url_a},
-        },
-        {
-            "title": f"🅱️ {deck_b['drafter']} — {deck_b['event']}",
-            "color": 0xC0C0C0,
-            "image": {"url": image_url_b},
-        },
-    ]
-
     bot_headers = {
         "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
         "Content-Type": "application/json",
     }
 
+    # Post the main message with text and poll (no embed images)
     payload = {
         "content": content,
-        "embeds": embeds,
         "poll": poll,
     }
 
@@ -223,8 +207,31 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
     resp.raise_for_status()
     print(f"Posted trophy battle. Status: {resp.status_code}")
 
-    # Post decklists as file attachments in a follow-up message
-    decklist_parts = []
+    # Post deck images and decklists as file attachments
+    image_url_a = f"{GITHUB_RAW_BASE}/{deck_a['image']}"
+    image_url_b = f"{GITHUB_RAW_BASE}/{deck_b['image']}"
+
+    # Fetch deck images
+    files = {}
+    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**\n🅱️ **Deck B — {deck_b['drafter']}**"
+
+    try:
+        img_a = requests.get(image_url_a, timeout=15)
+        img_a.raise_for_status()
+        ext_a = deck_a['image'].split('.')[-1]
+        files["files[0]"] = (f"deck_a_{deck_a['drafter']}.{ext_a}", img_a.content, f"image/{ext_a}")
+    except Exception as e:
+        print(f"Warning: could not fetch Deck A image: {e}")
+
+    try:
+        img_b = requests.get(image_url_b, timeout=15)
+        img_b.raise_for_status()
+        ext_b = deck_b['image'].split('.')[-1]
+        files["files[1]"] = (f"deck_b_{deck_b['drafter']}.{ext_b}", img_b.content, f"image/{ext_b}")
+    except Exception as e:
+        print(f"Warning: could not fetch Deck B image: {e}")
+
+    # Fetch decklists
     for label, deck in [("Deck_A", deck_a), ("Deck_B", deck_b)]:
         draft_id = deck.get("cubecobra_draft_id")
         seat = deck.get("seat", 0)
@@ -232,29 +239,26 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
             print(f"Fetching decklist for {deck['drafter']} (seat {seat})...")
             decklist = fetch_decklist(draft_id, seat)
             if decklist:
+                idx = len(files)
                 filename = f"{label}_{deck['drafter']}_decklist.txt"
-                decklist_parts.append((filename, decklist))
+                files[f"files[{idx}]"] = (filename, decklist.encode("utf-8"), "text/plain")
+                print(f"Decklist ready: {len(decklist.splitlines())} cards")
             else:
                 print(f"Could not fetch decklist for {deck['drafter']}.")
 
-    if decklist_parts:
+    if files:
         file_headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
-        files = {}
-        for i, (filename, text) in enumerate(decklist_parts):
-            files[f"files[{i}]"] = (filename, text.encode("utf-8"), "text/plain")
-        form_data = {"content": "📋 **Decklists** (for Cockatrice and friends!)"}
         file_resp = requests.post(
             f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages",
             headers=file_headers,
-            data={"payload_json": json.dumps(form_data)},
+            data={"payload_json": json.dumps({"content": form_content})},
             files=files,
-            timeout=15,
+            timeout=30,
         )
         if not file_resp.ok:
             print(f"Discord file upload error: {file_resp.text}")
         else:
-            print(f"Posted decklists. Status: {file_resp.status_code}")
-
+            print(f"Posted images and decklists. Status: {file_resp.status_code}")
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 

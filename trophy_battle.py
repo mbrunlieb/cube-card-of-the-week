@@ -231,7 +231,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
 
     # Fetch deck images
     files = {}
-    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**   _VS_   🅱️ **Deck B — {deck_b['drafter']}**"
+    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**     _VS_     🅱️ **Deck B — {deck_b['drafter']}**"
 
     try:
         img_a = requests.get(image_url_a, timeout=15)

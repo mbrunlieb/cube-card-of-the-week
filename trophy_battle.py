@@ -112,6 +112,9 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         print(f"Warning: failed to parse mainboard JSON: {e}")
         return None
 
+    if cards:
+        print(f"DEBUG first card object: {json.dumps(cards[0], indent=2)[:500]}")
+
     card_names = []
     for card in cards:
         name = None

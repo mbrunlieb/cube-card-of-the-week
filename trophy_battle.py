@@ -167,7 +167,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
 
     content_lines = [
         "⚔️ **CLASH OF THE WISE!!** ⚔️",
-        "Two flawless tomes of unparalleled power (trophy decks) lay before ye...",
+        "Two flawless tomes of unparalleled power lay before ye...",
         "",
         format_deck_info(deck_a, "Deck A"),
         "",

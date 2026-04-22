@@ -99,37 +99,65 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         print(f"Warning: could not fetch deck page: {e}")
         return None
 
-    pattern = re.compile(r'"mainboard"\s*:\s*(\[.*?\])\s*,\s*"sideboard"', re.DOTALL)
-    match = pattern.search(html)
-
-    if not match:
-        print(f"Warning: could not find mainboard data for seat {seat}.")
+    # Extract the flat cards array
+    cards_pattern = re.compile(r'"cards"\s*:\s*(\[.*?\])\s*,\s*"seats"', re.DOTALL)
+    cards_match = cards_pattern.search(html)
+    if not cards_match:
+        print(f"Warning: could not find cards array in deck page.")
         return None
 
     try:
-        cards = json.loads(match.group(1))
+        cards = json.loads(cards_match.group(1))
     except json.JSONDecodeError as e:
-        print(f"Warning: failed to parse mainboard JSON: {e}")
+        print(f"Warning: failed to parse cards JSON: {e}")
         return None
 
-    if cards:
-        print(f"DEBUG first card object: {json.dumps(cards[0], indent=2)[:500]}")
+    # Extract the seats array to find our seat's mainboard
+    seats_pattern = re.compile(r'"seats"\s*:\s*(\[.*\])\s*\}', re.DOTALL)
+    seats_match = seats_pattern.search(html)
+    if not seats_match:
+        print(f"Warning: could not find seats array in deck page.")
+        return None
 
+    try:
+        seats = json.loads(seats_match.group(1))
+    except json.JSONDecodeError as e:
+        print(f"Warning: failed to parse seats JSON: {e}")
+        return None
+
+    if seat >= len(seats):
+        print(f"Warning: seat {seat} not found (only {len(seats)} seats).")
+        return None
+
+    # Flatten the nested mainboard index arrays
+    mainboard = seats[seat].get("mainboard", [])
+    indices = []
+    for pile in mainboard:
+        for row in pile:
+            if isinstance(row, list):
+                indices.extend(row)
+            elif isinstance(row, int):
+                indices.append(row)
+
+    if not indices:
+        print(f"Warning: no card indices found in mainboard for seat {seat}.")
+        return None
+
+    # Look up each index in the cards array
     card_names = []
-    for card in cards:
-        name = None
-        if isinstance(card, dict):
-            name = card.get("details", {}).get("name") or card.get("name")
-        if name:
-            card_names.append(name)
+    for idx in indices:
+        if idx < len(cards):
+            name = cards[idx].get("details", {}).get("name") or cards[idx].get("name")
+            if name:
+                card_names.append(name)
 
     if not card_names:
-        print(f"Warning: no card names found for seat {seat}.")
+        print(f"Warning: could not resolve any card names for seat {seat}.")
         return None
 
+    print(f"Found {len(card_names)} cards for seat {seat}.")
     lines = [f"1 {name}" for name in sorted(card_names)]
     return "\n".join(lines)
-
 
 # ── Discord posting ───────────────────────────────────────────────────────────
 

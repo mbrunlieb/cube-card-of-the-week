@@ -113,14 +113,32 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         return None
 
     # Extract the seats array to find our seat's mainboard
-    seats_pattern = re.compile(r'"seats"\s*:\s*(\[.*\])\s*\}', re.DOTALL)
-    seats_match = seats_pattern.search(html)
-    if not seats_match:
+    seats_marker = html.find('"seats":[')
+    print(f"DEBUG: seats_marker={seats_marker}, html length={len(html)}")
+    if seats_marker == -1:
+        seats_marker = html.find('"seats" :[')
+        print(f"DEBUG: alternate seats_marker={seats_marker}")
+    if seats_marker == -1:
         print(f"Warning: could not find seats array in deck page.")
+        idx = html.find('seat')
+        if idx != -1:
+            print(f"DEBUG: first 'seat' occurrence: {html[max(0,idx-20):idx+50]}")
         return None
 
+    start = seats_marker + len('"seats":')
+    depth = 0
+    end = start
+    for i, ch in enumerate(html[start:], start=start):
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
     try:
-        seats = json.loads(seats_match.group(1))
+        seats = json.loads(html[start:end])
     except json.JSONDecodeError as e:
         print(f"Warning: failed to parse seats JSON: {e}")
         return None
@@ -158,7 +176,7 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     print(f"Found {len(card_names)} cards for seat {seat}.")
     lines = [f"1 {name}" for name in sorted(card_names)]
     return "\n".join(lines)
-
+    
 # ── Discord posting ───────────────────────────────────────────────────────────
 
 def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):

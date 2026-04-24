@@ -116,7 +116,7 @@
     "event": "Team cube draft - May 2025",
     "date": "2025-05-17",
     "cubecobra_draft_id": "a1ffcac1-8f03-46b2-8173-b914938f1ae3",
-    "image": null,
+    "image": "deck_images/2025_May_BenH.jpg",
     "seat": 2
   },
   {
@@ -124,7 +124,7 @@
     "event": "Team cube draft - April 2025",
     "date": "2025-04-26",
     "cubecobra_draft_id": "cc2ad82c-a12a-45ad-8e16-1ad2ba229512",
-    "image": null,
+    "image": "deck_images/2025_April_MikeM.jpg",
     "seat": 0
   },
   {
@@ -132,7 +132,7 @@
     "event": "Team cube draft - April 2025",
     "date": "2025-04-26",
     "cubecobra_draft_id": "cc2ad82c-a12a-45ad-8e16-1ad2ba229512",
-    "image": null,
+    "image": "deck_images/2025_April_MikeB.jpg",
     "seat": 1
   },
   {
@@ -140,7 +140,7 @@
     "event": "Team cube draft - April 2025",
     "date": "2025-04-26",
     "cubecobra_draft_id": "cc2ad82c-a12a-45ad-8e16-1ad2ba229512",
-    "image": null,
+    "image": "deck_images/2025_April_DillonC.jpg",
     "seat": 4
   }
 ]

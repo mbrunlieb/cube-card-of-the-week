@@ -36,7 +36,7 @@
     "event": "Winter Roto Draft 2025-26",
     "date": "2025-12-20",
     "cubecobra_draft_id": "2e410e24-340e-4d23-b66d-64d80a59a218",
-    "image": null,
+    "image": "deck_images/2025_Holiday_Rot_TannerG.png",
     "seat": 1
   },
   {
@@ -44,7 +44,7 @@
     "event": "Winter Roto Draft 2025-26",
     "date": "2025-12-20",
     "cubecobra_draft_id": "2e410e24-340e-4d23-b66d-64d80a59a218",
-    "image": null,
+    "image": "deck_images/2025_Holiday_Rot_TaylorJ.png",
     "seat": 9
   },
   {
@@ -52,7 +52,7 @@
     "event": "Team cube draft - October 2025",
     "date": "2025-10-25",
     "cubecobra_draft_id": "d722f72e-461a-4b50-8735-e429f5e13a87",
-    "image": null,
+    "image": "deck_images/2025_October_TannerG.jpg",
     "seat": 0
   },
   {
@@ -60,7 +60,7 @@
     "event": "Team cube draft - October 2025",
     "date": "2025-10-25",
     "cubecobra_draft_id": "d722f72e-461a-4b50-8735-e429f5e13a87",
-    "image": null,
+    "image": "deck_images/2025_October_JPC.jpg",
     "seat": 7
   },
   {

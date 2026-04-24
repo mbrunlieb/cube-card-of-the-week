@@ -68,7 +68,7 @@
     "event": "Team cube draft - August 2025",
     "date": "2025-08-31",
     "cubecobra_draft_id": "1c8d95ee-e69e-4d76-bd9a-b101d1314ace",
-    "image": null,
+    "image": "deck_images/2025_August_AlliD.jpg",
     "seat": 1
   },
   {
@@ -76,7 +76,7 @@
     "event": "Team cube draft - August 2025",
     "date": "2025-08-17",
     "cubecobra_draft_id": "5aacd635-0121-491c-99db-5ef11b1ad7b8",
-    "image": null,
+    "image": "deck_images/2025_August_MikeB.jpg",
     "seat": 2
   },
   {
@@ -84,7 +84,7 @@
     "event": "Team cube draft - August 2025",
     "date": "2025-08-17",
     "cubecobra_draft_id": "5aacd635-0121-491c-99db-5ef11b1ad7b8",
-    "image": null,
+    "image": "deck_images/2025_August_BenH.jpg",
     "seat": 4
   },
   {

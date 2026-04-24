@@ -184,7 +184,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
         return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
 
     content_lines = [
-        "⚔️ **CLASH OF THE WISE!!** ⚔️",
+        "📖 **CLASH OF THE EXTREMELY WISE!!** 📖",
         "Two flawless tomes of unparalleled power lay before ye...",
         "",
         format_deck_info(deck_a, "Deck A"),
@@ -198,7 +198,7 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
     content = "\n".join(content_lines)
 
     poll = {
-        "question": {"text": "Whiche do ye choose?"},
+        "question": {"text": "...whiche spellbook do ye choose?"},
         "answers": [
             {"poll_media": {"text": f"Deck A — {deck_a['drafter']}", "emoji": {"name": "🅰️"}}},
             {"poll_media": {"text": f"Deck B — {deck_b['drafter']}", "emoji": {"name": "🅱️"}}},

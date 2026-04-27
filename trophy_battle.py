@@ -179,13 +179,13 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     
 # ── Discord posting ───────────────────────────────────────────────────────────
 
-def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
+def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool, clash_url: str | None = None):
     def format_deck_info(deck: dict, label: str) -> str:
         return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
 
-    content_lines = [
-        "📖 **CLASH OF THE EXTREMELY WISE!!** 📖",
-        "Two flawless tomes of unparalleled power lay before ye...",
+content_lines = [
+        "⚔️ **CLASH OF THE WISE!!** ⚔️",
+        "Two grimoires of unparalleled power lay before ye...",
         "",
         format_deck_info(deck_a, "Deck A"),
         "",
@@ -194,6 +194,10 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
 
     if history_reset:
         content_lines.append("\n*All matchups have been featured — starting a fresh cycle!* 🔄")
+
+    if clash_url:
+        content_lines.append("")
+        content_lines.append(f"⚔️ **Play these decks:** {clash_url}")
 
     content = "\n".join(content_lines)
 
@@ -339,8 +343,11 @@ def main():
     deck_a, deck_b, history_reset = pick_matchup(decks, history)
     print(f"Matchup: {deck_a['drafter']} vs {deck_b['drafter']}")
 
+    clash_url = os.environ.get("CLASH_URL")
+    push_decks_to_clash(deck_a, deck_b, decklist_a, decklist_b)
+
     print("Posting to Discord...")
-    post_to_discord(deck_a, deck_b, history_reset)
+    post_to_discord(deck_a, deck_b, history_reset, clash_url=clash_url)
 
     pair = sorted([deck_id(deck_a), deck_id(deck_b)])
     if history_reset:

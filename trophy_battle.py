@@ -207,6 +207,7 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
     """Push this week's decks to the Cube Clash server."""
     clash_url = os.environ.get("CLASH_URL")
     clash_secret = os.environ.get("CLASH_SECRET")
+    print(f"DEBUG: CLASH_URL present={bool(clash_url)}, CLASH_SECRET present={bool(clash_secret)}")
     if not clash_url or not clash_secret:
         print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash update.")
         return False

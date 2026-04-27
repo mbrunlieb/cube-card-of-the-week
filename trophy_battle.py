@@ -112,17 +112,12 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         print(f"Warning: failed to parse cards JSON: {e}")
         return None
 
-    # Extract the seats array to find our seat's mainboard
+    # Extract the seats array using bracket counting
     seats_marker = html.find('"seats":[')
-    print(f"DEBUG: seats_marker={seats_marker}, html length={len(html)}")
     if seats_marker == -1:
         seats_marker = html.find('"seats" :[')
-        print(f"DEBUG: alternate seats_marker={seats_marker}")
     if seats_marker == -1:
         print(f"Warning: could not find seats array in deck page.")
-        idx = html.find('seat')
-        if idx != -1:
-            print(f"DEBUG: first 'seat' occurrence: {html[max(0,idx-20):idx+50]}")
         return None
 
     start = seats_marker + len('"seats":')
@@ -176,111 +171,37 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     print(f"Found {len(card_names)} cards for seat {seat}.")
     lines = [f"1 {name}" for name in sorted(card_names)]
     return "\n".join(lines)
-    
-# ── Discord posting ───────────────────────────────────────────────────────────
 
-def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool, clash_url: str | None = None):
-    def format_deck_info(deck: dict, label: str) -> str:
-        return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
 
-content_lines = [
-        "⚔️ **CLASH OF THE WISE!!** ⚔️",
-        "Two grimoires of unparalleled power lay before ye...",
-        "",
-        format_deck_info(deck_a, "Deck A"),
-        "",
-        format_deck_info(deck_b, "Deck B"),
-    ]
+def fetch_both_decklists(deck_a: dict, deck_b: dict) -> tuple[str | None, str | None]:
+    """Fetch decklists for both decks and return as a tuple."""
+    decklist_a = None
+    decklist_b = None
 
-    if history_reset:
-        content_lines.append("\n*All matchups have been featured — starting a fresh cycle!* 🔄")
-
-    if clash_url:
-        content_lines.append("")
-        content_lines.append(f"⚔️ **Play these decks:** {clash_url}")
-
-    content = "\n".join(content_lines)
-
-    poll = {
-        "question": {"text": "...whiche spellbook do ye choose?"},
-        "answers": [
-            {"poll_media": {"text": f"Deck A — {deck_a['drafter']}", "emoji": {"name": "🅰️"}}},
-            {"poll_media": {"text": f"Deck B — {deck_b['drafter']}", "emoji": {"name": "🅱️"}}},
-        ],
-        "duration": 36,
-        "allow_multiselect": False,
-    }
-
-    bot_headers = {
-        "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
-        "Content-Type": "application/json",
-    }
-
-    # Post the main message with text and poll (no embed images)
-    payload = {
-        "content": content,
-        "poll": poll,
-    }
-
-    url = f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages"
-    resp = requests.post(url, json=payload, headers=bot_headers, timeout=15)
-    if not resp.ok:
-        print(f"Discord error response: {resp.text}")
-    resp.raise_for_status()
-    print(f"Posted trophy battle. Status: {resp.status_code}")
-
-    # Post deck images and decklists as file attachments
-    image_url_a = f"{GITHUB_RAW_BASE}/{deck_a['image']}"
-    image_url_b = f"{GITHUB_RAW_BASE}/{deck_b['image']}"
-
-    # Fetch deck images
-    files = {}
-    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**     _VS_     🅱️ **Deck B — {deck_b['drafter']}**"
-
-    try:
-        img_a = requests.get(image_url_a, timeout=15)
-        img_a.raise_for_status()
-        ext_a = deck_a['image'].split('.')[-1]
-        files["files[0]"] = (f"deck_a_{deck_a['drafter']}.{ext_a}", img_a.content, f"image/{ext_a}")
-    except Exception as e:
-        print(f"Warning: could not fetch Deck A image: {e}")
-
-    try:
-        img_b = requests.get(image_url_b, timeout=15)
-        img_b.raise_for_status()
-        ext_b = deck_b['image'].split('.')[-1]
-        files["files[1]"] = (f"deck_b_{deck_b['drafter']}.{ext_b}", img_b.content, f"image/{ext_b}")
-    except Exception as e:
-        print(f"Warning: could not fetch Deck B image: {e}")
-
-    # Fetch decklists
-    for label, deck in [("Deck_A", deck_a), ("Deck_B", deck_b)]:
-        draft_id = deck.get("cubecobra_draft_id")
-        seat = deck.get("seat", 0)
-        if draft_id:
-            print(f"Fetching decklist for {deck['drafter']} (seat {seat})...")
-            decklist = fetch_decklist(draft_id, seat)
-            if decklist:
-                idx = len(files)
-                filename = f"{label}_{deck['drafter']}_decklist.txt"
-                files[f"files[{idx}]"] = (filename, decklist.encode("utf-8"), "text/plain")
-                print(f"Decklist ready: {len(decklist.splitlines())} cards")
-            else:
-                print(f"Could not fetch decklist for {deck['drafter']}.")
-
-    if files:
-        file_headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
-        file_resp = requests.post(
-            f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages",
-            headers=file_headers,
-            data={"payload_json": json.dumps({"content": form_content})},
-            files=files,
-            timeout=30,
-        )
-        if not file_resp.ok:
-            print(f"Discord file upload error: {file_resp.text}")
+    draft_id_a = deck_a.get("cubecobra_draft_id")
+    seat_a = deck_a.get("seat", 0)
+    if draft_id_a:
+        print(f"Fetching decklist for {deck_a['drafter']} (seat {seat_a})...")
+        decklist_a = fetch_decklist(draft_id_a, seat_a)
+        if decklist_a:
+            print(f"Decklist ready: {len(decklist_a.splitlines())} cards")
         else:
-            print(f"Posted images and decklists. Status: {file_resp.status_code}")
+            print(f"Could not fetch decklist for {deck_a['drafter']}.")
+
+    draft_id_b = deck_b.get("cubecobra_draft_id")
+    seat_b = deck_b.get("seat", 0)
+    if draft_id_b:
+        print(f"Fetching decklist for {deck_b['drafter']} (seat {seat_b})...")
+        decklist_b = fetch_decklist(draft_id_b, seat_b)
+        if decklist_b:
+            print(f"Decklist ready: {len(decklist_b.splitlines())} cards")
+        else:
+            print(f"Could not fetch decklist for {deck_b['drafter']}.")
+
+    return decklist_a, decklist_b
+
+
+# ── Cube Clash integration ────────────────────────────────────────────────────
 
 def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None):
     """Push this week's decks to the Cube Clash server."""
@@ -325,6 +246,101 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         print(f"Warning: could not push decks to Cube Clash: {e}")
         return False
 
+
+# ── Discord posting ───────────────────────────────────────────────────────────
+
+def post_to_discord(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None, history_reset: bool, clash_url: str | None = None):
+    def format_deck_info(deck: dict, label: str) -> str:
+        return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
+
+    content_lines = [
+        "⚔️ **CLASH OF THE WISE!!** ⚔️",
+        "Two grimoires of unparalleled power lay before ye...",
+        "",
+        format_deck_info(deck_a, "Deck A"),
+        "",
+        format_deck_info(deck_b, "Deck B"),
+    ]
+
+    if history_reset:
+        content_lines.append("\n*All matchups have been featured — starting a fresh cycle!* 🔄")
+
+    if clash_url:
+        content_lines.append("")
+        content_lines.append(f"⚔️ **Play these decks:** {clash_url}")
+
+    content = "\n".join(content_lines)
+
+    poll = {
+        "question": {"text": "...whiche spellbook do ye choose?"},
+        "answers": [
+            {"poll_media": {"text": f"Deck A — {deck_a['drafter']}", "emoji": {"name": "🅰️"}}},
+            {"poll_media": {"text": f"Deck B — {deck_b['drafter']}", "emoji": {"name": "🅱️"}}},
+        ],
+        "duration": 36,
+        "allow_multiselect": False,
+    }
+
+    bot_headers = {
+        "Authorization": f"Bot {DISCORD_BOT_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "content": content,
+        "poll": poll,
+    }
+
+    url = f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages"
+    resp = requests.post(url, json=payload, headers=bot_headers, timeout=15)
+    if not resp.ok:
+        print(f"Discord error response: {resp.text}")
+    resp.raise_for_status()
+    print(f"Posted trophy battle. Status: {resp.status_code}")
+
+    # Post deck images and decklists as file attachments
+    image_url_a = f"{GITHUB_RAW_BASE}/{deck_a['image']}"
+    image_url_b = f"{GITHUB_RAW_BASE}/{deck_b['image']}"
+
+    files = {}
+    form_content = f"🅰️ **Deck A — {deck_a['drafter']}**     _VS_     🅱️ **Deck B — {deck_b['drafter']}**"
+
+    try:
+        img_a = requests.get(image_url_a, timeout=15)
+        img_a.raise_for_status()
+        ext_a = deck_a['image'].split('.')[-1]
+        files["files[0]"] = (f"deck_a_{deck_a['drafter']}.{ext_a}", img_a.content, f"image/{ext_a}")
+    except Exception as e:
+        print(f"Warning: could not fetch Deck A image: {e}")
+
+    try:
+        img_b = requests.get(image_url_b, timeout=15)
+        img_b.raise_for_status()
+        ext_b = deck_b['image'].split('.')[-1]
+        files["files[1]"] = (f"deck_b_{deck_b['drafter']}.{ext_b}", img_b.content, f"image/{ext_b}")
+    except Exception as e:
+        print(f"Warning: could not fetch Deck B image: {e}")
+
+    if decklist_a:
+        files["files[2]"] = (f"Deck_A_{deck_a['drafter']}_decklist.txt", decklist_a.encode("utf-8"), "text/plain")
+    if decklist_b:
+        files["files[3]"] = (f"Deck_B_{deck_b['drafter']}_decklist.txt", decklist_b.encode("utf-8"), "text/plain")
+
+    if files:
+        file_headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
+        file_resp = requests.post(
+            f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages",
+            headers=file_headers,
+            data={"payload_json": json.dumps({"content": form_content})},
+            files=files,
+            timeout=30,
+        )
+        if not file_resp.ok:
+            print(f"Discord file upload error: {file_resp.text}")
+        else:
+            print(f"Posted images and decklists. Status: {file_resp.status_code}")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -343,11 +359,15 @@ def main():
     deck_a, deck_b, history_reset = pick_matchup(decks, history)
     print(f"Matchup: {deck_a['drafter']} vs {deck_b['drafter']}")
 
+    print("Fetching decklists...")
+    decklist_a, decklist_b = fetch_both_decklists(deck_a, deck_b)
+
     clash_url = os.environ.get("CLASH_URL")
+    print("Pushing decks to Cube Clash...")
     push_decks_to_clash(deck_a, deck_b, decklist_a, decklist_b)
 
     print("Posting to Discord...")
-    post_to_discord(deck_a, deck_b, history_reset, clash_url=clash_url)
+    post_to_discord(deck_a, deck_b, decklist_a, decklist_b, history_reset, clash_url=clash_url)
 
     pair = sorted([deck_id(deck_a), deck_id(deck_b)])
     if history_reset:

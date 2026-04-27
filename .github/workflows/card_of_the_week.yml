@@ -46,8 +46,6 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
-          CLASH_URL: ${{ secrets.CLASH_URL }}
-          CLASH_SECRET: ${{ secrets.CLASH_SECRET }}
         run: python trophy_battle.py
 
       - name: Commit updated history
@@ -83,6 +81,8 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          CLASH_URL: ${{ secrets.CLASH_URL }}
+          CLASH_SECRET: ${{ secrets.CLASH_SECRET }}
         run: python trophy_battle.py
 
       - name: Commit updated history

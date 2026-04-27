@@ -10,6 +10,7 @@ import json
 import os
 import random
 import re
+import time
 from datetime import datetime
 
 import requests
@@ -203,6 +204,43 @@ def fetch_both_decklists(deck_a: dict, deck_b: dict) -> tuple[str | None, str | 
 
 # ── Cube Clash integration ────────────────────────────────────────────────────
 
+def fetch_scryfall_images(card_names: list[str]) -> dict[str, str]:
+    """
+    Look up image URLs for a list of card names using Scryfall's collection API.
+    Returns a dict of name -> image_url.
+    """
+    image_map = {}
+    # Scryfall collection endpoint accepts up to 75 cards at once
+    chunk_size = 75
+    for i in range(0, len(card_names), chunk_size):
+        chunk = card_names[i:i + chunk_size]
+        identifiers = [{"name": name} for name in chunk]
+        try:
+            resp = requests.post(
+                "https://api.scryfall.com/cards/collection",
+                json={"identifiers": identifiers},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for card in data.get("data", []):
+                name = card.get("name", "")
+                # Handle double-faced cards
+                image_url = (
+                    card.get("image_uris", {}).get("normal")
+                    or (card.get("card_faces") or [{}])[0].get("image_uris", {}).get("normal")
+                )
+                if name and image_url:
+                    image_map[name] = image_url
+            # Scryfall rate limit: 10 requests/second max
+            time.sleep(0.1)
+        except Exception as e:
+            print(f"Warning: Scryfall lookup failed for chunk: {e}")
+
+    print(f"Fetched images for {len(image_map)}/{len(card_names)} cards from Scryfall.")
+    return image_map
+
+
 def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None):
     """Push this week's decks to the Cube Clash server."""
     clash_url = os.environ.get("CLASH_URL")
@@ -211,16 +249,25 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash update.")
         return False
 
-    def parse_decklist(decklist: str | None) -> list[dict]:
+    def parse_names(decklist: str | None) -> list[str]:
         if not decklist:
             return []
-        cards = []
+        names = []
         for line in decklist.strip().splitlines():
             parts = line.strip().split(" ", 1)
             if len(parts) == 2:
-                name = parts[1]
-                cards.append({"name": name, "imageUrl": None})
-        return cards
+                names.append(parts[1])
+        return names
+
+    names_a = parse_names(decklist_a)
+    names_b = parse_names(decklist_b)
+    all_names = list(set(names_a + names_b))
+
+    print(f"Fetching Scryfall images for {len(all_names)} unique cards...")
+    image_map = fetch_scryfall_images(all_names)
+
+    def build_cards(names: list[str]) -> list[dict]:
+        return [{"name": name, "imageUrl": image_map.get(name)} for name in names]
 
     payload = {
         "secret": clash_secret,
@@ -228,12 +275,12 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         "deckA": {
             "name": deck_a["event"],
             "drafter": deck_a["drafter"],
-            "cards": parse_decklist(decklist_a),
+            "cards": build_cards(names_a),
         },
         "deckB": {
             "name": deck_b["event"],
             "drafter": deck_b["drafter"],
-            "cards": parse_decklist(decklist_b),
+            "cards": build_cards(names_b),
         },
     }
 
@@ -245,7 +292,6 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
     except Exception as e:
         print(f"Warning: could not push decks to Cube Clash: {e}")
         return False
-
 
 # ── Discord posting ───────────────────────────────────────────────────────────
 

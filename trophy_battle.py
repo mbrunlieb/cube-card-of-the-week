@@ -278,6 +278,49 @@ def post_to_discord(deck_a: dict, deck_b: dict, history_reset: bool):
         else:
             print(f"Posted images and decklists. Status: {file_resp.status_code}")
 
+def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None):
+    """Push this week's decks to the Cube Clash server."""
+    clash_url = os.environ.get("CLASH_URL")
+    clash_secret = os.environ.get("CLASH_SECRET")
+    if not clash_url or not clash_secret:
+        print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash update.")
+        return False
+
+    def parse_decklist(decklist: str | None) -> list[dict]:
+        if not decklist:
+            return []
+        cards = []
+        for line in decklist.strip().splitlines():
+            parts = line.strip().split(" ", 1)
+            if len(parts) == 2:
+                name = parts[1]
+                cards.append({"name": name, "imageUrl": None})
+        return cards
+
+    payload = {
+        "secret": clash_secret,
+        "weekLabel": f"{deck_a['drafter']} vs {deck_b['drafter']} — {deck_a['event']}",
+        "deckA": {
+            "name": deck_a["event"],
+            "drafter": deck_a["drafter"],
+            "cards": parse_decklist(decklist_a),
+        },
+        "deckB": {
+            "name": deck_b["event"],
+            "drafter": deck_b["drafter"],
+            "cards": parse_decklist(decklist_b),
+        },
+    }
+
+    try:
+        resp = requests.post(f"{clash_url}/api/set-decks", json=payload, timeout=15)
+        resp.raise_for_status()
+        print(f"Pushed decks to Cube Clash. Status: {resp.status_code}")
+        return True
+    except Exception as e:
+        print(f"Warning: could not push decks to Cube Clash: {e}")
+        return False
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():

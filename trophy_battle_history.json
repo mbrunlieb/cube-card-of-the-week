@@ -43,9 +43,13 @@
     [
       "deck_images_2026_February_AlliD_jpg",
       "deck_images_2026_March_BenH_jpg"
+    ],
+    [
+      "deck_images_2025_August_AlliD_jpg",
+      "deck_images_2026_March_BenH_jpg"
     ]
   ],
-  "last_updated": "2026-04-27T06:58:31.363807",
+  "last_updated": "2026-05-01T19:06:47.848145",
   "last_matchup": "Ben H vs Alli D",
-  "total_matchups": 11
+  "total_matchups": 12
 }

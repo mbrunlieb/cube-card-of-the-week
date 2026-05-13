@@ -2,7 +2,7 @@
 """
 Wednesday P1P1 bot for MTG Cube Discord.
 Generates a random pack from the cube, creates a P1P1 poll on Cube Cobra,
-and posts the link to Discord.
+and posts the pack image and link to Discord.
 """
 
 import json
@@ -25,7 +25,6 @@ CREATE_P1P1_URL = "https://cubecobra.com/tool/api/createp1p1frompack"
 DISCORD_API = "https://discord.com/api/v10"
 HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0"}
 
-# How many cards in a pack
 PACK_SIZE = 16
 
 # ── Fetch cube cards ──────────────────────────────────────────────────────────
@@ -60,7 +59,6 @@ def create_p1p1_poll(pack: list[dict]) -> str | None:
     """
     seed = str(int(time.time() * 1000))
 
-    # Build the cards payload — cardID and index for each card
     cards_payload = []
     for card in pack:
         card_id = card.get("cardID") or card.get("details", {}).get("scryfall_id", "")
@@ -73,15 +71,13 @@ def create_p1p1_poll(pack: list[dict]) -> str | None:
         "cards": cards_payload,
     }
 
-    cookie_header = f"connect.sid={CUBECOBRA_SESSION}"
-
     resp = requests.post(
         CREATE_P1P1_URL,
         json=payload,
         headers={
             **HEADERS,
             "Content-Type": "application/json",
-            "Cookie": cookie_header,
+            "Cookie": f"connect.sid={CUBECOBRA_SESSION}",
             "Referer": f"https://cubecobra.com/cube/playtest/{CUBE_ID}",
             "Origin": "https://cubecobra.com",
         },
@@ -108,25 +104,22 @@ def create_p1p1_poll(pack: list[dict]) -> str | None:
 
 # ── Post to Discord ───────────────────────────────────────────────────────────
 
-def post_to_discord(poll_url: str, pack: list[dict]):
-    """Post the P1P1 poll link to Discord."""
-    card_names = [c.get("details", {}).get("name", "Unknown") for c in pack]
-
-    # Build a compact card list for the embed description
-    desc = "\n".join(f"• {name}" for name in card_names)
+def post_to_discord(poll_url: str, pack_id: str):
+    """Post the P1P1 poll link and pack image to Discord."""
+    image_url = f"https://cubecobra.com/cube/p1p1packimage/{pack_id}"
 
     embed = {
-        "title": "🎴 This Week's P1P1 Pack",
-        "description": desc,
+        "title": "🎴 This Week's P1P1 — Click to Vote!",
         "color": 0x5865F2,
         "url": poll_url,
-        "footer": {"text": "Click the title to vote on Cube Cobra!"},
+        "image": {"url": image_url},
+        "footer": {"text": "Vote on Cube Cobra — which card do you pick first?"},
     }
 
     content = (
         "📜 **SCROLL of FATE!!** 🎲\n"
         "A fresh pack hath been conjured from the aether — "
-        f"what dost thou pick first?\n\n"
+        "what dost thou pick first?\n\n"
         f"🗳️ **Vote here:** {poll_url}"
     )
 
@@ -168,8 +161,10 @@ def main():
         print("Failed to create poll. Exiting.")
         return
 
+    pack_id = poll_url.split("/")[-1]
+
     print("Posting to Discord...")
-    post_to_discord(poll_url, pack)
+    post_to_discord(poll_url, pack_id)
 
     print("Done!")
 

@@ -4,6 +4,8 @@ on:
   schedule:
     # Card of the Week — Mondays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
     - cron: "0 18 * * 1"
+    # P1P1 — Wednesdays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
+    - cron: "0 18 * * 3"
     # Trophy Battle — Fridays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
     - cron: "0 18 * * 5"
 
@@ -17,13 +19,14 @@ on:
         type: choice
         options:
           - card-of-the-week
+          - p1p1
           - trophy-battle
           - scrape-trophies
 
 jobs:
   card-of-the-week:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.event.schedule == '0 18 * * 1' || github.event_name == 'workflow_dispatch' && inputs.job == 'card-of-the-week'
+    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.job == 'card-of-the-week')
 
     permissions:
       contents: write
@@ -42,11 +45,11 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run trophy battle script
+      - name: Run card of the week script
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
-        run: python trophy_battle.py
+        run: python card_of_the_week.py
 
       - name: Commit updated history
         run: |
@@ -56,9 +59,34 @@ jobs:
           git diff --staged --quiet || git commit -m "Update card history"
           git push
 
+  p1p1:
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 3') || (github.event_name == 'workflow_dispatch' && inputs.job == 'p1p1')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run P1P1 script
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          CUBECOBRA_SESSION: ${{ secrets.CUBECOBRA_SESSION }}
+        run: python p1p1_bot.py
+
   trophy-battle:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.event.schedule == '0 18 * * 5' || github.event_name == 'workflow_dispatch' && inputs.job == 'trophy-battle'
+    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 5') || (github.event_name == 'workflow_dispatch' && inputs.job == 'trophy-battle')
 
     permissions:
       contents: write

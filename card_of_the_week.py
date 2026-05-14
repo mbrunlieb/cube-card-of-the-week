@@ -220,7 +220,7 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
     if scryfall_uri:
         embed["url"] = scryfall_uri
 
-    intro = "🧝 **SCROLL of the week!!** 🧙
+    intro = "🧝 **SCROLL of the week!!** 🧙"
     if history_reset:
         intro += "\n*Every card has been featured — starting a fresh cycle!* 🔄"
 

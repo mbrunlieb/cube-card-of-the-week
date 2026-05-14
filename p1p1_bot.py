@@ -117,8 +117,8 @@ def post_to_discord(poll_url: str, pack_id: str):
 
     content = (
         "📜 **SCROLLS for SALE!!** 📜\n"
-        "...howls the vedalken street urchin. You pat your pockets, but god damn it you only have enough coin for a single scroll...\n\n"
-        f"🗳️ Vote here if you want! {poll_url}"
+        "...howls the vedalken street urchin. You pat your pockets, but damn it you only have enough coin for a single scroll... what will you choose??\n\n"
+        f"🗳️ Vote here: {poll_url}"
     )
 
     payload = {

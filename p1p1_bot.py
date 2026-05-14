@@ -109,18 +109,17 @@ def post_to_discord(poll_url: str, pack_id: str):
     image_url = f"https://cubecobra.com/cube/p1p1packimage/{pack_id}"
 
     embed = {
-        "title": "🎴 This Week's P1P1 — Click to Vote!",
+        "title": "SCROLLS!",
         "color": 0x5865F2,
         "url": poll_url,
         "image": {"url": image_url},
-        "footer": {"text": "Vote on Cube Cobra — which card do you pick first?"},
+        "footer": {"text": "Which card would you select?"},
     }
 
     content = (
-        "📜 **SCROLL of FATE!!** 🎲\n"
-        "A fresh pack hath been conjured from the aether — "
-        "what dost thou pick first?\n\n"
-        f"🗳️ **Vote here:** {poll_url}"
+        "📜 **SCROLLS for SALE!!** 📜\n"
+        "Cries the homunculus urchin.\n You check all your pockets, but damn it you only have enough coin for a single scroll, which do you choose?\n\n"
+        f"🗳️ **(you can vote here if you want!):** {poll_url}"
     )
 
     payload = {

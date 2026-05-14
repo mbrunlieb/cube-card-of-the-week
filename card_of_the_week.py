@@ -220,20 +220,20 @@ def post_to_discord(card: dict, winrate_str: str | None, combo_lines: list[str],
     if scryfall_uri:
         embed["url"] = scryfall_uri
 
-    intro = "🧝 **SCROLL of the day!!** 🧙\n   ~ ~ __**SPEAK WIZARD!!**__ ~ ~"
+    intro = "🧝 **SCROLL of the week!!** 🧙
     if history_reset:
         intro += "\n*Every card has been featured — starting a fresh cycle!* 🔄"
 
     poll = {
-        "question": {"text": f"LOVETH thee {name} or dost thou HATETH it??"},
+        "question": {"text": f"How do you feel about {name}? You can be honest, no one will be mad at you."},
         "answers": [
-            {"poll_media": {"text": "I will PIVOT HARD anytime I see this card", "emoji": {"name": "💎"}}},
-            {"poll_media": {"text": "Alright, I am pretty happy to take this P1P1", "emoji": {"name": "🚬"}}},
-            {"poll_media": {"text": "MID-PACK ass behavior on display", "emoji": {"name": "🥣"}}},
-            {"poll_media": {"text": "Eh, maybe on the wheel?", "emoji": {"name": "🎡"}}},
-            {"poll_media": {"text": "Can we please cut this?", "emoji": {"name": "🚱"}}},
+            {"poll_media": {"text": "Oh god thank you (top 25 cube card)", "emoji": {"name": "💎"}}},
+            {"poll_media": {"text": "Yes. (Bomb)", "emoji": {"name": "🚬"}}},
+            {"poll_media": {"text": "OK! (Solid playable)", "emoji": {"name": "🥣"}}},
+            {"poll_media": {"text": "Ugh, fine. (Filler)", "emoji": {"name": "🎡"}}},
+            {"poll_media": {"text": "Why is this in the cube? (Mike, cut this)", "emoji": {"name": "🚱"}}},
         ],
-        "duration": 36,
+        "duration": 24,
         "allow_multiselect": False,
     }
 

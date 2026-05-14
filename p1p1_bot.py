@@ -113,13 +113,13 @@ def post_to_discord(poll_url: str, pack_id: str):
         "color": 0x5865F2,
         "url": poll_url,
         "image": {"url": image_url},
-        "footer": {"text": "Which card would you select?"},
+        "footer": {"text": "Choose, wizard!"},
     }
 
     content = (
         "📜 **SCROLLS for SALE!!** 📜\n"
-        "Cries the homunculus urchin.\n You check all your pockets, but damn it you only have enough coin for a single scroll, which do you choose?\n\n"
-        f"🗳️ **(you can vote here if you want!):** {poll_url}"
+        "cries the urchin homunculus.\n You check your pockets, but damn it you only have enough coin for a single scroll, which do you choose?\n\n"
+        f"🗳️ (you can vote here if you want!): {poll_url}"
     )
 
     payload = {

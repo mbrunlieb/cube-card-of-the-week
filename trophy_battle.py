@@ -196,7 +196,9 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         return None
 
     print(f"Found {len(card_names)} cards for seat {seat}.")
-    lines = [f"1 {name}" for name in sorted(card_names)]
+    # Use only the first face name for double-faced cards
+    clean_names = [name.split("//")[0].strip() for name in card_names]
+    lines = [f"1 {name}" for name in sorted(clean_names)]
     return "\n".join(lines)
 
 

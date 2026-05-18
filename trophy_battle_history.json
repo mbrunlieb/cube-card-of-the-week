@@ -63,9 +63,13 @@
     [
       "deck_images_2025_August_AlliD_jpg",
       "deck_images_2026_March_TannerG_jpg"
+    ],
+    [
+      "deck_images_2025_August_MikeB_jpg",
+      "deck_images_2025_October_TannerG_jpg"
     ]
   ],
-  "last_updated": "2026-05-15T19:25:04.956138",
-  "last_matchup": "TannerGold vs Alli D",
-  "total_matchups": 16
+  "last_updated": "2026-05-18T15:18:13.003961",
+  "last_matchup": "TannerGold vs mbrun",
+  "total_matchups": 17
 }

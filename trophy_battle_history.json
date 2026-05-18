@@ -71,9 +71,13 @@
     [
       "deck_images_2025_April_MikeB_jpg",
       "deck_images_2026_February_AlliD_jpg"
+    ],
+    [
+      "deck_images_2025_August_AlliD_jpg",
+      "deck_images_2025_August_MikeB_jpg"
     ]
   ],
-  "last_updated": "2026-05-18T15:25:41.154836",
+  "last_updated": "2026-05-18T16:03:17.307011",
   "last_matchup": "Alli D vs mbrun",
-  "total_matchups": 18
+  "total_matchups": 19
 }

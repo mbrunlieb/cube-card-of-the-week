@@ -106,7 +106,6 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     if not cards_match:
         print(f"Warning: could not find cards array in deck page.")
         return None
-    print(f"DEBUG: cards array found, length={len(html[cards_match.start():cards_match.end()])}, first card snippet: {html[cards_match.start():cards_match.start()+100]}")    
 
     try:
         cards = json.loads(cards_match.group(1))
@@ -159,12 +158,38 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
         return None
 
     # Look up each index in the cards array
+    # Cards may have name directly, via details, or only via cardID (Scryfall ID)
     card_names = []
+    card_ids_to_lookup = []
+
     for idx in indices:
         if idx < len(cards):
-            name = cards[idx].get("details", {}).get("name") or cards[idx].get("name")
+            card = cards[idx]
+            name = (card.get("details") or {}).get("name") or card.get("name")
             if name:
                 card_names.append(name)
+            else:
+                card_id = card.get("cardID") or (card.get("details") or {}).get("scryfall_id")
+                if card_id:
+                    card_ids_to_lookup.append(card_id)
+
+    # Look up any missing names via Scryfall collection API
+    if card_ids_to_lookup:
+        print(f"Looking up {len(card_ids_to_lookup)} card names via Scryfall...")
+        for i in range(0, len(card_ids_to_lookup), 75):
+            chunk = card_ids_to_lookup[i:i + 75]
+            try:
+                resp = requests.post(
+                    "https://api.scryfall.com/cards/collection",
+                    json={"identifiers": [{"id": cid} for cid in chunk]},
+                    headers=HEADERS,
+                    timeout=15,
+                )
+                for c in resp.json().get("data", []):
+                    card_names.append(c["name"])
+                time.sleep(0.1)
+            except Exception as e:
+                print(f"Warning: Scryfall lookup failed: {e}")
 
     if not card_names:
         print(f"Warning: could not resolve any card names for seat {seat}.")

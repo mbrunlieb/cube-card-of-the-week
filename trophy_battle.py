@@ -99,7 +99,6 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     except Exception as e:
         print(f"Warning: could not fetch deck page: {e}")
         return None
-    print(f"DEBUG: cards array found, length={len(html[cards_match.start():cards_match.end()])}, first card snippet: {html[cards_match.start():cards_match.start()+100]}")
 
     # Extract the flat cards array
     cards_pattern = re.compile(r'"cards"\s*:\s*(\[.*?\])\s*,\s*"seats"', re.DOTALL)
@@ -107,7 +106,7 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
     if not cards_match:
         print(f"Warning: could not find cards array in deck page.")
         return None
-        
+    print(f"DEBUG: cards array found, length={len(html[cards_match.start():cards_match.end()])}, first card snippet: {html[cards_match.start():cards_match.start()+100]}")    
 
     try:
         cards = json.loads(cards_match.group(1))

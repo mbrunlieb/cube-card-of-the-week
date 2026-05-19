@@ -232,13 +232,12 @@ def fetch_both_decklists(deck_a: dict, deck_b: dict) -> tuple[str | None, str | 
 
 # ── Cube Clash integration ────────────────────────────────────────────────────
 
-def fetch_scryfall_images(card_names: list[str]) -> dict[str, str]:
+def fetch_scryfall_images(card_names: list[str]) -> dict[str, dict]:
     """
     Look up image URLs for a list of card names using Scryfall's collection API.
-    Returns a dict of name -> image_url.
+    Returns a dict of name -> {"front": url, "back": url_or_None}
     """
     image_map = {}
-    # Scryfall collection endpoint accepts up to 75 cards at once
     chunk_size = 75
     for i in range(0, len(card_names), chunk_size):
         chunk = card_names[i:i + chunk_size]
@@ -253,14 +252,23 @@ def fetch_scryfall_images(card_names: list[str]) -> dict[str, str]:
             data = resp.json()
             for card in data.get("data", []):
                 name = card.get("name", "")
-                # Handle double-faced cards
+                faces = card.get("card_faces") or []
+                # Front image
                 image_url = (
                     card.get("image_uris", {}).get("normal")
-                    or (card.get("card_faces") or [{}])[0].get("image_uris", {}).get("normal")
+                    or (faces[0].get("image_uris", {}).get("normal") if faces else None)
+                )
+                # Back image (double-faced cards only)
+                image_url_back = (
+                    faces[1].get("image_uris", {}).get("normal")
+                    if len(faces) >= 2 else None
                 )
                 if name and image_url:
-                    image_map[name] = image_url
-            # Scryfall rate limit: 10 requests/second max
+                    entry = {"front": image_url, "back": image_url_back}
+                    image_map[name] = entry
+                    # Also map just the first face name
+                    if "//" in name:
+                        image_map[name.split("//")[0].strip()] = entry
             time.sleep(0.1)
         except Exception as e:
             print(f"Warning: Scryfall lookup failed for chunk: {e}")
@@ -295,7 +303,15 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
     image_map = fetch_scryfall_images(all_names)
 
     def build_cards(names: list[str]) -> list[dict]:
-        return [{"name": name, "imageUrl": image_map.get(name)} for name in names]
+        cards = []
+        for name in names:
+            entry = image_map.get(name) or image_map.get(name.split("//")[0].strip())
+            cards.append({
+                "name": name,
+                "imageUrl": entry["front"] if entry else None,
+                "imageUrlBack": entry["back"] if entry else None,
+            })
+        return cards
 
     payload = {
         "secret": clash_secret,

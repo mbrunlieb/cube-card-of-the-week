@@ -99,9 +99,13 @@
     [
       "deck_images_2025_Holiday_Rot_TannerG_png",
       "deck_images_2026_February_AlliD_jpg"
+    ],
+    [
+      "deck_images_2025_April_DillonC_jpg",
+      "deck_images_2025_May_BenH_jpg"
     ]
   ],
-  "last_updated": "2026-05-19T03:02:11.491021",
-  "last_matchup": "Alli D vs TannerGold",
-  "total_matchups": 25
+  "last_updated": "2026-05-22T19:29:19.432959",
+  "last_matchup": "Ben H vs Dillon C",
+  "total_matchups": 26
 }

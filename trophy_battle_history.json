@@ -103,9 +103,13 @@
     [
       "deck_images_2025_April_DillonC_jpg",
       "deck_images_2025_May_BenH_jpg"
+    ],
+    [
+      "deck_images_2025_April_MikeB_jpg",
+      "deck_images_2025_October_JPC_jpg"
     ]
   ],
-  "last_updated": "2026-05-22T19:29:19.432959",
-  "last_matchup": "Ben H vs Dillon C",
-  "total_matchups": 26
+  "last_updated": "2026-05-29T20:14:57.581235",
+  "last_matchup": "JPC vs mbrun",
+  "total_matchups": 27
 }

@@ -127,9 +127,13 @@
     [
       "deck_images_2025_Holiday_Rot_TaylorJ_png",
       "deck_images_2025_June_DillonC_jpg"
+    ],
+    [
+      "deck_images_2025_June_DillonC_jpg",
+      "deck_images_2026_March_BenH_jpg"
     ]
   ],
-  "last_updated": "2026-07-03T19:13:00.462928",
-  "last_matchup": "Taylor J vs Dillon C",
-  "total_matchups": 32
+  "last_updated": "2026-07-10T19:21:15.069168",
+  "last_matchup": "Ben H vs Dillon C",
+  "total_matchups": 33
 }

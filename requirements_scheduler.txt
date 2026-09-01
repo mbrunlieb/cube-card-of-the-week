@@ -1,0 +1,3 @@
+# Cube Night Scheduler Bot — Python dependencies
+# Requires discord.py 2.4+ for native Poll support
+discord.py>=2.4.0

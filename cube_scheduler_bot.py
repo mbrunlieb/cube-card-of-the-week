@@ -26,7 +26,7 @@ BOT_TOKEN             = os.environ["DISCORD_BOT_TOKEN"]
 SCHEDULING_CHANNEL_ID = int(os.environ["DISCORD_SCHEDULING_CHANNEL_ID"])
 GUILD_ID              = int(os.environ["DISCORD_GUILD_ID"])
 
-CUBE_ROLE_NAME    = "🪄Next Cube🪄"
+CUBE_ROLE_NAME    = "Next Cube🪄"
 POLL_DURATION_DAYS = 7
 # Runs daily at 6 PM UTC (1 PM CDT) — matches your existing bot schedule
 DAILY_RUN_TIME    = time_t(hour=18, minute=0, tzinfo=timezone.utc)
@@ -289,8 +289,8 @@ class CubeBot(commands.Bot):
                 f"# 🗓️  {month_label} Cube\n"
                 f"Vote for the dates that work for you — poll closes in "
                 f"{POLL_DURATION_DAYS} days. "
-                f"Everyone who votes for the winner gets the **{CUBE_ROLE_NAME}** role "
-                f"and a confirmation ping the week of the event."
+                f"Everyone who votes for the winning date gets the **{CUBE_ROLE_NAME}** role "
+                f"and a confirmation ping a week before the cube."
             ),
             poll=poll,
         )

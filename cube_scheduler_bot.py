@@ -26,7 +26,7 @@ BOT_TOKEN             = os.environ["DISCORD_BOT_TOKEN"]
 SCHEDULING_CHANNEL_ID = int(os.environ["DISCORD_SCHEDULING_CHANNEL_ID"])
 GUILD_ID              = int(os.environ["DISCORD_GUILD_ID"])
 
-CUBE_ROLE_NAME    = "Next Cube🪄"
+CUBE_ROLE_NAME    = "🎲 Next Cube"
 POLL_DURATION_DAYS = 7
 # Runs daily at 6 PM UTC (1 PM CDT) — matches your existing bot schedule
 DAILY_RUN_TIME    = time_t(hour=18, minute=0, tzinfo=timezone.utc)
@@ -255,29 +255,49 @@ class CubeBot(commands.Bot):
         ]
 
     @staticmethod
+    def get_current_month_weekends(min_days_ahead: int = 0) -> list[datetime]:
+        """Remaining Sat/Sun of the CURRENT month, at least min_days_ahead out
+        (so no option can fall before the poll closes)."""
+        now = datetime.now(timezone.utc)
+        cutoff = now + timedelta(days=min_days_ahead)
+        _, num_days = calendar.monthrange(now.year, now.month)
+        return [
+            datetime(now.year, now.month, day, 18, 0, tzinfo=timezone.utc)
+            for day in range(1, num_days + 1)
+            if datetime(now.year, now.month, day).weekday() in (5, 6)
+            and datetime(now.year, now.month, day, 18, 0, tzinfo=timezone.utc) > cutoff
+        ]
+
+    @staticmethod
     def date_label(dt: datetime) -> str:
         """'Saturday, October 4' — Linux-safe, strips leading zero on day."""
         return dt.strftime("%-d %B %Y")  # used internally; display label separate
 
     # ── Poll posting ──────────────────────────────────────────────────────────
 
-    async def post_monthly_poll(self):
+    async def post_monthly_poll(self, current_month: bool = False,
+                                duration_days: int | None = None) -> bool:
         channel = self.get_channel(SCHEDULING_CHANNEL_ID)
         if not channel:
             print("❌  Scheduling channel not found.")
-            return
+            return False
 
-        dates = self.get_next_month_weekends()
+        duration = duration_days or POLL_DURATION_DAYS
+        if current_month:
+            # Only offer dates that land AFTER the poll closes (+1 day buffer)
+            dates = self.get_current_month_weekends(min_days_ahead=duration + 1)
+        else:
+            dates = self.get_next_month_weekends()
         if not dates:
-            print("⚠️  No weekend dates found for next month.")
-            return
+            print("⚠️  No eligible weekend dates found.")
+            return False
 
         month_label = dates[0].strftime("%B %Y")   # "October 2025"
         poll_month  = dates[0].strftime("%Y-%m")   # "2025-10"
 
         poll = discord.Poll(
             f"🎲 When can you cube in {month_label}?",
-            duration=timedelta(days=POLL_DURATION_DAYS),
+            duration=timedelta(days=duration),
             multiple=True,
         )
         for d in dates:
@@ -288,8 +308,8 @@ class CubeBot(commands.Bot):
             content=(
                 f"# 🗓️  {month_label} Cube\n"
                 f"Vote for the dates that work for you — poll closes in "
-                f"{POLL_DURATION_DAYS} days. "
-                f"Everyone who votes for the winning date gets the **{CUBE_ROLE_NAME}** role "
+                f"{duration} day{'s' if duration != 1 else ''}. "
+                f"Everyone who selects the winning cube date gets the **{CUBE_ROLE_NAME}** role "
                 f"and a confirmation ping a week before the cube."
             ),
             poll=poll,
@@ -297,7 +317,8 @@ class CubeBot(commands.Bot):
         self.state["poll_message_id"] = msg.id
         self.state["poll_month"]      = poll_month
         await self.save_state()
-        print(f"✅  Posted monthly poll for {month_label} (msg {msg.id})")
+        print(f"✅  Posted poll for {month_label} (msg {msg.id})")
+        return True
 
     # ── Poll result handling ──────────────────────────────────────────────────
 
@@ -431,8 +452,17 @@ class CubeBot(commands.Bot):
             return
         label = self.state.get("cube_date_label") or "the next Cube"
         count = len(self.state["confirmed_ids"])
+        days_until = 7
+        if self.state.get("cube_date"):
+            days_until = max(0, (self.state["cube_date"] - datetime.now(timezone.utc)).days)
+        if days_until >= 6:
+            when = "is one week away"
+        elif days_until <= 1:
+            when = "is almost here"
+        else:
+            when = f"is only {days_until} days away"
         await channel.send(
-            f"{role.mention} — **{label} is one week away!** 🎲\n\n"
+            f"{role.mention} — **{label} {when}!** 🎲\n\n"
             f"Can you still make it? Use the buttons above to confirm or drop. "
             f"Current count: **{count} confirmed**."
         )
@@ -499,7 +529,11 @@ class CubeBot(commands.Bot):
                     "week_ping_sent":         False,
                 })
                 await self.save_state()
-                print("🧹  Cleaned up after cube night.")
+                print("🧹  Cleaned up after cube day.")
+                # Immediately start the next cycle — the 1st-of-month post is
+                # usually blocked by the active confirmation, so without this
+                # the following month would be skipped entirely.
+                await self.post_monthly_poll()
 
     @daily_task.before_loop
     async def before_daily(self):
@@ -517,9 +551,45 @@ guild_obj = discord.Object(id=GUILD_ID)
                   guild=guild_obj)
 @app_commands.checks.has_permissions(administrator=True)
 async def cmd_poll(interaction: discord.Interaction):
+    if bot.state["poll_message_id"] or bot.state["confirmation_message_id"]:
+        await interaction.response.send_message(
+            "❌  A scheduling cycle is already active. Run `/cube-reset` first "
+            "if you want to start over.", ephemeral=True
+        )
+        return
     await interaction.response.defer(ephemeral=True)
-    await bot.post_monthly_poll()
-    await interaction.followup.send("✅  Scheduling poll posted!", ephemeral=True)
+    ok = await bot.post_monthly_poll()
+    await interaction.followup.send(
+        "✅  Scheduling poll posted!" if ok
+        else "⚠️  Couldn't post the poll — check the logs.", ephemeral=True
+    )
+
+
+@bot.tree.command(name="cube-poll-now",
+                  description="Post a poll for the CURRENT month's remaining weekends",
+                  guild=guild_obj)
+@app_commands.describe(duration_days="How many days the poll stays open (default 3)")
+@app_commands.checks.has_permissions(administrator=True)
+async def cmd_poll_now(interaction: discord.Interaction, duration_days: int = 3):
+    if bot.state["poll_message_id"] or bot.state["confirmation_message_id"]:
+        await interaction.response.send_message(
+            "❌  A scheduling cycle is already active. Run `/cube-reset` first "
+            "if you want to start over.", ephemeral=True
+        )
+        return
+    if not 1 <= duration_days <= 7:
+        await interaction.response.send_message(
+            "❌  duration_days must be between 1 and 7.", ephemeral=True
+        )
+        return
+    await interaction.response.defer(ephemeral=True)
+    ok = await bot.post_monthly_poll(current_month=True, duration_days=duration_days)
+    await interaction.followup.send(
+        "✅  Current-month poll posted!" if ok
+        else ("⚠️  No eligible weekend dates left this month "
+              "(options must fall after the poll closes). "
+              "Try a shorter duration_days."), ephemeral=True
+    )
 
 
 @bot.tree.command(name="cube-ping", description="Manually send the 1-week confirmation ping",

@@ -26,7 +26,7 @@ BOT_TOKEN             = os.environ["DISCORD_BOT_TOKEN"]
 SCHEDULING_CHANNEL_ID = int(os.environ["DISCORD_SCHEDULING_CHANNEL_ID"])
 GUILD_ID              = int(os.environ["DISCORD_GUILD_ID"])
 
-CUBE_ROLE_NAME    = "🎲 Cube Night"
+CUBE_ROLE_NAME    = "🪄Next Cube🪄"
 POLL_DURATION_DAYS = 7
 # Runs daily at 6 PM UTC (1 PM CDT) — matches your existing bot schedule
 DAILY_RUN_TIME    = time_t(hour=18, minute=0, tzinfo=timezone.utc)
@@ -69,7 +69,7 @@ class ConfirmationView(discord.ui.View):
 
         await bot.update_confirmation_embed(interaction.channel)
         await interaction.response.send_message(
-            "✅ You're confirmed for Cube Night! See you there 🎲", ephemeral=True
+            "✅ You're confirmed for the next Cube! See you there 🎲", ephemeral=True
         )
 
     @discord.ui.button(label="❌ Drop", style=discord.ButtonStyle.danger,
@@ -88,7 +88,7 @@ class ConfirmationView(discord.ui.View):
 
         await bot.update_confirmation_embed(interaction.channel)
         await interaction.response.send_message(
-            "You've dropped from Cube Night. Hope to see you next time! 👋",
+            "You've dropped from the next Cube. Hope to see you next time! 👋",
             ephemeral=True,
         )
 
@@ -102,7 +102,7 @@ class ConfirmationView(discord.ui.View):
 
         if role and role in member.roles:
             await interaction.response.send_message(
-                "You're already signed up for Cube Night!", ephemeral=True
+                "You're already signed up for the next Cube!", ephemeral=True
             )
             return
 
@@ -114,7 +114,7 @@ class ConfirmationView(discord.ui.View):
 
         await bot.update_confirmation_embed(interaction.channel)
         await interaction.response.send_message(
-            "✅ You've joined Cube Night! See you there 🎲", ephemeral=True
+            "✅ You've joined the next Cube! See you there 🎲", ephemeral=True
         )
 
 
@@ -278,7 +278,7 @@ class CubeBot(commands.Bot):
         poll = discord.Poll(
             f"🎲 When can you cube in {month_label}?",
             duration=timedelta(days=POLL_DURATION_DAYS),
-            multiple=False,
+            multiple=True,
         )
         for d in dates:
             emoji = "🟩" if d.weekday() == 5 else "🟦"   # green=Sat, blue=Sun
@@ -286,8 +286,8 @@ class CubeBot(commands.Bot):
 
         msg = await channel.send(
             content=(
-                f"# 🗓️  {month_label} Cube Night\n"
-                f"Vote for the date that works for you — poll closes in "
+                f"# 🗓️  {month_label} Cube\n"
+                f"Vote for the dates that work for you — poll closes in "
                 f"{POLL_DURATION_DAYS} days. "
                 f"Everyone who votes for the winner gets the **{CUBE_ROLE_NAME}** role "
                 f"and a confirmation ping the week of the event."
@@ -312,7 +312,7 @@ class CubeBot(commands.Bot):
         best = max(poll.answers, key=lambda a: a.vote_count)
         if best.vote_count == 0:
             await channel.send(
-                "⚠️  No votes were cast — no cube night scheduled this month."
+                "⚠️  No votes were cast — no cube scheduled this month."
             )
             self.state["poll_message_id"] = None
             await self.save_state()
@@ -366,7 +366,7 @@ class CubeBot(commands.Bot):
         view  = ConfirmationView(bot_ref=self)
         msg   = await channel.send(
             content=(
-                f"🏆  **The votes are in!** {role.mention} — your cube night is set.\n"
+                f"🏆  **The votes are in!** {role.mention} — your cube date is set.\n"
                 f"Confirm your spot, drop if plans change, or join if you missed the poll!"
             ),
             embed=embed,
@@ -381,7 +381,7 @@ class CubeBot(commands.Bot):
     def _build_embed(self, date_label: str, count: int,
                      role: discord.Role | None = None) -> discord.Embed:
         embed = discord.Embed(
-            title=f"📅  Cube Night — {date_label}",
+            title=f"📅  Next Cube — {date_label}",
             color=discord.Color.gold(),
         )
         embed.add_field(
@@ -429,7 +429,7 @@ class CubeBot(commands.Bot):
         role    = discord.utils.get(guild.roles, name=CUBE_ROLE_NAME)
         if not role:
             return
-        label = self.state.get("cube_date_label") or "Cube Night"
+        label = self.state.get("cube_date_label") or "the next Cube"
         count = len(self.state["confirmed_ids"])
         await channel.send(
             f"{role.mention} — **{label} is one week away!** 🎲\n\n"
@@ -528,7 +528,7 @@ async def cmd_poll(interaction: discord.Interaction):
 async def cmd_ping(interaction: discord.Interaction):
     if not bot.state.get("cube_date"):
         await interaction.response.send_message(
-            "❌  No cube night is currently scheduled.", ephemeral=True
+            "❌  No cube is currently scheduled.", ephemeral=True
         )
         return
     await interaction.response.defer(ephemeral=True)

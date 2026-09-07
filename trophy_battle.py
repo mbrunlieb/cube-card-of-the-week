@@ -659,12 +659,33 @@ def preview_deck_image(drafter: str | None = None):
     print(f"Posted preview. Status: {resp.status_code}")
 
 
+def push_clash_only():
+    """
+    Test helper: pick a random matchup, push it to Cube Clash and write
+    current_week.json. No Discord post, no history entry.
+    """
+    decks = load_trophy_decks()
+    if len(decks) < 2:
+        print("Not enough decks.")
+        return
+    deck_a, deck_b, _ = pick_matchup(decks, load_matchup_history())
+    print(f"Test matchup: {deck_a['drafter']} vs {deck_b['drafter']}")
+    decklist_a, decklist_b = fetch_both_decklists(deck_a, deck_b)
+    all_names = list(set(parse_names(decklist_a) + parse_names(decklist_b)))
+    image_map = fetch_scryfall_images(all_names)
+    push_decks_to_clash(deck_a, deck_b, decklist_a, decklist_b, image_map)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--preview-image", nargs="?", const="", metavar="DRAFTER",
                         help="Only generate and post a deck grid image (optionally for a specific drafter).")
+    parser.add_argument("--clash-only", action="store_true",
+                        help="Only push a test matchup to Cube Clash (no Discord post, no history).")
     args = parser.parse_args()
     if args.preview_image is not None:
         preview_deck_image(args.preview_image or None)
+    elif args.clash_only:
+        push_clash_only()
     else:
         main()

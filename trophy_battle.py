@@ -29,6 +29,38 @@ TROPHY_HISTORY_FILE = "trophy_battle_history.json"
 DISCORD_API = "https://discord.com/api/v10"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/mbrunlieb/cube-card-of-the-week/main"
 HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0"}
+# Scryfall requires both User-Agent and Accept headers or it may reject the request.
+SCRYFALL_HEADERS = {"User-Agent": "CubeCardOfTheWeekBot/1.0 (github.com/mbrunlieb/cube-card-of-the-week)", "Accept": "application/json"}
+
+# Card data captured during decklist fetching (keyed by name) so we don't
+# have to re-query Scryfall by name later.
+SCRYFALL_CACHE: dict[str, dict] = {}
+
+
+def scryfall_entry(card: dict) -> dict | None:
+    """Turn a Scryfall card object into our {front, back, cmc, type_line} entry."""
+    faces = card.get("card_faces") or []
+    front = (
+        card.get("image_uris", {}).get("normal")
+        or (faces[0].get("image_uris", {}).get("normal") if faces else None)
+    )
+    if not front:
+        return None
+    return {
+        "front": front,
+        "back": faces[1].get("image_uris", {}).get("normal") if len(faces) >= 2 else None,
+        "cmc": card.get("cmc", 0),
+        "type_line": card.get("type_line") or (faces[0].get("type_line", "") if faces else ""),
+    }
+
+
+def cache_card(card: dict):
+    entry = scryfall_entry(card)
+    name = card.get("name", "")
+    if entry and name:
+        SCRYFALL_CACHE[name] = entry
+        if "//" in name:
+            SCRYFALL_CACHE[name.split("//")[0].strip()] = entry
 
 # ── History tracking ──────────────────────────────────────────────────────────
 
@@ -192,11 +224,14 @@ def fetch_decklist(draft_id: str, seat: int) -> str | None:
                 resp = requests.post(
                     "https://api.scryfall.com/cards/collection",
                     json={"identifiers": [{"id": cid} for cid in chunk]},
-                    headers=HEADERS,
+                    headers=SCRYFALL_HEADERS,
                     timeout=15,
                 )
+                if not resp.ok:
+                    print(f"Scryfall ID lookup error {resp.status_code}: {resp.text[:300]}")
                 for c in resp.json().get("data", []):
                     card_names.append(c["name"])
+                    cache_card(c)
                 time.sleep(0.1)
             except Exception as e:
                 print(f"Warning: Scryfall lookup failed: {e}")
@@ -244,49 +279,47 @@ def fetch_both_decklists(deck_a: dict, deck_b: dict) -> tuple[str | None, str | 
 
 def fetch_scryfall_images(card_names: list[str]) -> dict[str, dict]:
     """
-    Look up image URLs for a list of card names using Scryfall's collection API.
-    Returns a dict of name -> {"front": url, "back": url_or_None}
+    Return a dict of name -> {"front", "back", "cmc", "type_line"} for the given cards.
+    Uses data already cached from the decklist ID lookup; only queries Scryfall
+    by name for cards that aren't cached.
     """
     image_map = {}
-    chunk_size = 75
-    for i in range(0, len(card_names), chunk_size):
-        chunk = card_names[i:i + chunk_size]
-        identifiers = [{"name": name} for name in chunk]
+    missing = []
+    for name in card_names:
+        entry = SCRYFALL_CACHE.get(name) or SCRYFALL_CACHE.get(name.split("//")[0].strip())
+        if entry:
+            image_map[name] = entry
+        else:
+            missing.append(name)
+
+    print(f"{len(image_map)} cards already cached from ID lookup; {len(missing)} need a name lookup.")
+
+    for i in range(0, len(missing), 75):
+        chunk = missing[i:i + 75]
         try:
             resp = requests.post(
                 "https://api.scryfall.com/cards/collection",
-                json={"identifiers": identifiers},
+                json={"identifiers": [{"name": n} for n in chunk]},
+                headers=SCRYFALL_HEADERS,
                 timeout=30,
             )
+            if not resp.ok:
+                print(f"Scryfall name lookup error {resp.status_code}: {resp.text[:300]}")
             resp.raise_for_status()
             data = resp.json()
             for card in data.get("data", []):
+                cache_card(card)
                 name = card.get("name", "")
-                faces = card.get("card_faces") or []
-                # Front image
-                image_url = (
-                    card.get("image_uris", {}).get("normal")
-                    or (faces[0].get("image_uris", {}).get("normal") if faces else None)
-                )
-                # Back image (double-faced cards only)
-                image_url_back = (
-                    faces[1].get("image_uris", {}).get("normal")
-                    if len(faces) >= 2 else None
-                )
-                if name and image_url:
-                    entry = {
-                        "front": image_url,
-                        "back": image_url_back,
-                        "cmc": card.get("cmc", 0),
-                        "type_line": card.get("type_line") or (faces[0].get("type_line", "") if faces else ""),
-                    }
+                entry = SCRYFALL_CACHE.get(name)
+                if entry:
                     image_map[name] = entry
-                    # Also map just the first face name
                     if "//" in name:
                         image_map[name.split("//")[0].strip()] = entry
+            for nf in data.get("not_found", []):
+                print(f"Scryfall could not find: {nf}")
             time.sleep(0.1)
         except Exception as e:
-            print(f"Warning: Scryfall lookup failed for chunk: {e}")
+            print(f"Warning: Scryfall name lookup failed for chunk: {e}")
 
     print(f"Fetched images for {len(image_map)}/{len(card_names)} cards from Scryfall.")
     return image_map
@@ -401,7 +434,7 @@ def generate_deck_image(deck: dict, decklist: str | None, image_map: dict) -> by
         card_img = None
         if entry and entry.get("front"):
             try:
-                r = requests.get(entry["front"], headers=HEADERS, timeout=15)
+                r = requests.get(entry["front"], headers={"User-Agent": SCRYFALL_HEADERS["User-Agent"]}, timeout=15)
                 r.raise_for_status()
                 card_img = Image.open(BytesIO(r.content)).convert("RGB").resize((CARD_W, CARD_H), Image.LANCZOS)
                 fetched += 1

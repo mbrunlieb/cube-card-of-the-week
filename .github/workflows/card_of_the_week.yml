@@ -23,6 +23,7 @@ on:
           - trophy-battle
           - scrape-trophies
           - preview-deck-image
+          - push-clash-only
       drafter:
         description: 'Drafter name (preview-deck-image only; blank = random deck without a photo)'
         required: false
@@ -129,8 +130,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add trophy_battle_history.json trophy_decks.json
-          git diff --staged --quiet || git commit -m "Update trophy battle history and trophy decks"
+          git add trophy_battle_history.json trophy_decks.json current_week.json
+          git diff --staged --quiet || git commit -m "Update trophy battle history, trophy decks, and current week"
           git push
 
   scrape-trophies:
@@ -189,3 +190,42 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
         run: python trophy_battle.py --preview-image "${{ inputs.drafter }}"
+
+  # Test helper: pushes a random matchup to Cube Clash and commits current_week.json.
+  # No Discord post, no history entry.
+  push-clash-only:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'push-clash-only'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pillow
+
+      - name: Push test matchup to Cube Clash
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          CLASH_URL: ${{ secrets.CLASH_URL }}
+          CLASH_SECRET: ${{ secrets.CLASH_SECRET }}
+        run: python trophy_battle.py --clash-only
+
+      - name: Commit current week
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add current_week.json
+          git diff --staged --quiet || git commit -m "Update current week (test push)"
+          git push

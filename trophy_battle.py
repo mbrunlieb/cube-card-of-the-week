@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
 Trophy Battle bot for MTG Cube Discord.
-Picks two random trophy decks, posts their images and decklists,
+Picks two random trophy decks, posts their images (paper-deck photo if one exists,
+otherwise an auto-generated grid built from Scryfall card images) and decklists,
 and runs a poll asking which deck is stronger.
 Tracks matchup history to avoid repeats and prevents same-drafter matchups.
 """
 
+import argparse
 import json
 import os
 import random
@@ -14,6 +16,9 @@ import time
 from datetime import datetime
 
 import requests
+from io import BytesIO
+
+from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
@@ -32,8 +37,10 @@ def load_trophy_decks() -> list[dict]:
         raise FileNotFoundError(f"{TROPHY_DECKS_FILE} not found!")
     with open(TROPHY_DECKS_FILE, "r") as f:
         decks = json.load(f)
-    ready = [d for d in decks if d.get("image")]
-    print(f"Loaded {len(decks)} total trophy decks, {len(ready)} have images.")
+    ready = [d for d in decks if d.get("cubecobra_draft_id")]
+    with_photo = sum(1 for d in ready if d.get("image"))
+    print(f"Loaded {len(decks)} total trophy decks, {len(ready)} usable "
+          f"({with_photo} with photos, {len(ready) - with_photo} will use generated images).")
     return ready
 
 
@@ -58,6 +65,9 @@ def save_matchup_history(history: list[list[str]], deck_a: dict, deck_b: dict):
 
 
 def deck_id(deck: dict) -> str:
+    """Stable identifier for a deck. Prefers draft ID + seat so decks without photos work."""
+    if deck.get("cubecobra_draft_id"):
+        return f"{deck['cubecobra_draft_id']}_seat{deck.get('seat', 0)}"
     return deck["image"].replace("/", "_").replace(".", "_")
 
 
@@ -264,7 +274,12 @@ def fetch_scryfall_images(card_names: list[str]) -> dict[str, dict]:
                     if len(faces) >= 2 else None
                 )
                 if name and image_url:
-                    entry = {"front": image_url, "back": image_url_back}
+                    entry = {
+                        "front": image_url,
+                        "back": image_url_back,
+                        "cmc": card.get("cmc", 0),
+                        "type_line": card.get("type_line") or (faces[0].get("type_line", "") if faces else ""),
+                    }
                     image_map[name] = entry
                     # Also map just the first face name
                     if "//" in name:
@@ -277,7 +292,19 @@ def fetch_scryfall_images(card_names: list[str]) -> dict[str, dict]:
     return image_map
 
 
-def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None):
+def parse_names(decklist: str | None) -> list[str]:
+    """Turn a '1 Card Name' decklist into a list of card names."""
+    if not decklist:
+        return []
+    names = []
+    for line in decklist.strip().splitlines():
+        parts = line.strip().split(" ", 1)
+        if len(parts) == 2:
+            names.append(parts[1])
+    return names
+
+
+def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None, image_map: dict):
     """Push this week's decks to the Cube Clash server."""
     clash_url = os.environ.get("CLASH_URL")
     clash_secret = os.environ.get("CLASH_SECRET")
@@ -285,22 +312,8 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash update.")
         return False
 
-    def parse_names(decklist: str | None) -> list[str]:
-        if not decklist:
-            return []
-        names = []
-        for line in decklist.strip().splitlines():
-            parts = line.strip().split(" ", 1)
-            if len(parts) == 2:
-                names.append(parts[1])
-        return names
-
     names_a = parse_names(decklist_a)
     names_b = parse_names(decklist_b)
-    all_names = list(set(names_a + names_b))
-
-    print(f"Fetching Scryfall images for {len(all_names)} unique cards...")
-    image_map = fetch_scryfall_images(all_names)
 
     def build_cards(names: list[str]) -> list[dict]:
         cards = []
@@ -337,9 +350,98 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         print(f"Warning: could not push decks to Cube Clash: {e}")
         return False
 
+# ── Deck image generation ─────────────────────────────────────────────────────
+# Used as a fallback for trophy decks that don't have a paper-deck photo yet.
+
+GRID_COLUMNS = 8
+CARD_W, CARD_H = 292, 408          # Scryfall "normal" is 488x680; 60% keeps Discord uploads ~1MB
+CARD_GAP = 8
+HEADER_H = 90
+BG_COLOR = (24, 24, 28)
+TEXT_COLOR = (235, 235, 235)
+SUBTEXT_COLOR = (170, 170, 180)
+
+
+def _font(size: int):
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:  # Pillow < 10.1
+        return ImageFont.load_default()
+
+
+def _sort_key(name: str, image_map: dict):
+    entry = image_map.get(name) or image_map.get(name.split("//")[0].strip()) or {}
+    is_land = "Land" in (entry.get("type_line") or "")
+    return (is_land, entry.get("cmc", 0), name.lower())
+
+
+def generate_deck_image(deck: dict, decklist: str | None, image_map: dict) -> bytes | None:
+    """Build a grid image of the deck from Scryfall card images. Returns JPEG bytes or None."""
+    names = parse_names(decklist)
+    if not names:
+        print(f"Cannot generate image for {deck['drafter']}: no decklist.")
+        return None
+
+    names = sorted(names, key=lambda n: _sort_key(n, image_map))
+    cols = min(GRID_COLUMNS, len(names))
+    rows = (len(names) + cols - 1) // cols
+    width = cols * CARD_W + (cols + 1) * CARD_GAP
+    height = HEADER_H + rows * CARD_H + (rows + 1) * CARD_GAP
+
+    canvas = Image.new("RGB", (width, height), BG_COLOR)
+    draw = ImageDraw.Draw(canvas)
+    draw.text((CARD_GAP * 2, 14), f"{deck['drafter']}'s Trophy Deck", fill=TEXT_COLOR, font=_font(34))
+    draw.text((CARD_GAP * 2, 56), f"{deck['event'].strip()}  |  {len(names)} cards", fill=SUBTEXT_COLOR, font=_font(20))
+
+    fetched = 0
+    for i, name in enumerate(names):
+        entry = image_map.get(name) or image_map.get(name.split("//")[0].strip())
+        x = CARD_GAP + (i % cols) * (CARD_W + CARD_GAP)
+        y = HEADER_H + CARD_GAP + (i // cols) * (CARD_H + CARD_GAP)
+        card_img = None
+        if entry and entry.get("front"):
+            try:
+                r = requests.get(entry["front"], headers=HEADERS, timeout=15)
+                r.raise_for_status()
+                card_img = Image.open(BytesIO(r.content)).convert("RGB").resize((CARD_W, CARD_H), Image.LANCZOS)
+                fetched += 1
+                time.sleep(0.08)  # be polite to Scryfall
+            except Exception as e:
+                print(f"Warning: could not fetch image for {name}: {e}")
+        if card_img is None:
+            # Placeholder tile with the card name
+            card_img = Image.new("RGB", (CARD_W, CARD_H), (60, 60, 68))
+            d = ImageDraw.Draw(card_img)
+            d.text((12, 12), name, fill=TEXT_COLOR, font=_font(18))
+        canvas.paste(card_img, (x, y))
+
+    buf = BytesIO()
+    canvas.save(buf, format="JPEG", quality=85, optimize=True)
+    print(f"Generated deck image for {deck['drafter']}: {fetched}/{len(names)} card images, {buf.tell() // 1024} KB")
+    return buf.getvalue()
+
+
+def get_deck_image_bytes(deck: dict, decklist: str | None, image_map: dict) -> tuple[bytes | None, str, bool]:
+    """
+    Return (image_bytes, extension, generated) for a deck.
+    Uses the photo from the repo when one is registered; otherwise generates a grid.
+    """
+    if deck.get("image"):
+        url = f"{GITHUB_RAW_BASE}/{deck['image']}"
+        try:
+            r = requests.get(url, timeout=15)
+            r.raise_for_status()
+            return r.content, deck["image"].split(".")[-1], False
+        except Exception as e:
+            print(f"Warning: could not fetch photo for {deck['drafter']} ({e}); falling back to generated image.")
+    return generate_deck_image(deck, decklist, image_map), "jpg", True
+
+
 # ── Discord posting ───────────────────────────────────────────────────────────
 
-def post_to_discord(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None, history_reset: bool, clash_url: str | None = None):
+def post_to_discord(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None,
+                    history_reset: bool, clash_url: str | None = None,
+                    image_a: tuple | None = None, image_b: tuple | None = None):
     def format_deck_info(deck: dict, label: str) -> str:
         return f"**{label}: {deck['drafter']}'s Trophy Deck**\n📅 {deck['event']}"
 
@@ -389,27 +491,21 @@ def post_to_discord(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist
     print(f"Posted trophy battle. Status: {resp.status_code}")
 
     # Post deck images and decklists as file attachments
-    image_url_a = f"{GITHUB_RAW_BASE}/{deck_a['image']}"
-    image_url_b = f"{GITHUB_RAW_BASE}/{deck_b['image']}"
-
     files = {}
     form_content = f"🅰️ **Deck A — {deck_a['drafter']}**     _VS_     🅱️ **Deck B — {deck_b['drafter']}**"
 
-    try:
-        img_a = requests.get(image_url_a, timeout=15)
-        img_a.raise_for_status()
-        ext_a = deck_a['image'].split('.')[-1]
-        files["files[0]"] = (f"deck_a_{deck_a['drafter']}.{ext_a}", img_a.content, f"image/{ext_a}")
-    except Exception as e:
-        print(f"Warning: could not fetch Deck A image: {e}")
+    generated_any = False
+    for slot, label, deck, img in (("files[0]", "a", deck_a, image_a), ("files[1]", "b", deck_b, image_b)):
+        if not img or not img[0]:
+            print(f"Warning: no image available for Deck {label.upper()}.")
+            continue
+        data, ext, generated = img
+        generated_any = generated_any or generated
+        mime_ext = "jpeg" if ext.lower() in ("jpg", "jpeg") else ext.lower()
+        files[slot] = (f"deck_{label}_{deck['drafter']}.{ext}", data, f"image/{mime_ext}")
 
-    try:
-        img_b = requests.get(image_url_b, timeout=15)
-        img_b.raise_for_status()
-        ext_b = deck_b['image'].split('.')[-1]
-        files["files[1]"] = (f"deck_b_{deck_b['drafter']}.{ext_b}", img_b.content, f"image/{ext_b}")
-    except Exception as e:
-        print(f"Warning: could not fetch Deck B image: {e}")
+    if generated_any:
+        form_content += "\n-# Grid images are auto-generated from the decklist where no paper-deck photo exists."
 
     if decklist_a:
         files["files[2]"] = (f"Deck_A_{deck_a['drafter']}_decklist.txt", decklist_a.encode("utf-8"), "text/plain")
@@ -438,7 +534,7 @@ def main():
     decks = load_trophy_decks()
 
     if len(decks) < 2:
-        print("Not enough trophy decks with images to run a battle. Exiting.")
+        print("Not enough trophy decks with draft IDs to run a battle. Exiting.")
         return
 
     print("Loading matchup history...")
@@ -452,12 +548,21 @@ def main():
     print("Fetching decklists...")
     decklist_a, decklist_b = fetch_both_decklists(deck_a, deck_b)
 
+    all_names = list(set(parse_names(decklist_a) + parse_names(decklist_b)))
+    print(f"Fetching Scryfall images for {len(all_names)} unique cards...")
+    image_map = fetch_scryfall_images(all_names)
+
     clash_url = os.environ.get("CLASH_URL")
     print("Pushing decks to Cube Clash...")
-    push_decks_to_clash(deck_a, deck_b, decklist_a, decklist_b)
+    push_decks_to_clash(deck_a, deck_b, decklist_a, decklist_b, image_map)
+
+    print("Preparing deck images...")
+    image_a = get_deck_image_bytes(deck_a, decklist_a, image_map)
+    image_b = get_deck_image_bytes(deck_b, decklist_b, image_map)
 
     print("Posting to Discord...")
-    post_to_discord(deck_a, deck_b, decklist_a, decklist_b, history_reset, clash_url=clash_url)
+    post_to_discord(deck_a, deck_b, decklist_a, decklist_b, history_reset,
+                    clash_url=clash_url, image_a=image_a, image_b=image_b)
 
     pair = sorted([deck_id(deck_a), deck_id(deck_b)])
     if history_reset:
@@ -469,5 +574,55 @@ def main():
     print("Done!")
 
 
+def preview_deck_image(drafter: str | None = None):
+    """
+    Test helper: generate (and post to Discord) the grid image for one deck.
+    Does NOT run a poll, push to Cube Clash, or touch history.
+    Picks by drafter name if given, otherwise a random deck without a photo.
+    """
+    decks = load_trophy_decks()
+    if drafter:
+        candidates = [d for d in decks if d["drafter"].lower() == drafter.lower()]
+        if not candidates:
+            print(f"No deck found for drafter '{drafter}'. Known drafters: "
+                  + ", ".join(sorted({d['drafter'] for d in decks})))
+            return
+    else:
+        candidates = [d for d in decks if not d.get("image")] or decks
+    deck = random.choice(candidates)
+    print(f"Previewing generated image for {deck['drafter']} — {deck['event'].strip()}")
+
+    decklist = fetch_decklist(deck["cubecobra_draft_id"], deck.get("seat", 0))
+    if not decklist:
+        print("Could not fetch decklist; aborting preview.")
+        return
+
+    names = parse_names(decklist)
+    image_map = fetch_scryfall_images(names)
+    data = generate_deck_image(deck, decklist, image_map)
+    if not data:
+        print("Image generation failed.")
+        return
+
+    resp = requests.post(
+        f"{DISCORD_API}/channels/{DISCORD_CHANNEL_ID}/messages",
+        headers={"Authorization": f"Bot {DISCORD_BOT_TOKEN}"},
+        data={"payload_json": json.dumps({"content": f"🧪 **Deck image preview** — {deck['drafter']} ({deck['event'].strip()})"})},
+        files={"files[0]": (f"preview_{deck['drafter']}.jpg", data, "image/jpeg")},
+        timeout=30,
+    )
+    if not resp.ok:
+        print(f"Discord error: {resp.text}")
+    resp.raise_for_status()
+    print(f"Posted preview. Status: {resp.status_code}")
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--preview-image", nargs="?", const="", metavar="DRAFTER",
+                        help="Only generate and post a deck grid image (optionally for a specific drafter).")
+    args = parser.parse_args()
+    if args.preview_image is not None:
+        preview_deck_image(args.preview_image or None)
+    else:
+        main()

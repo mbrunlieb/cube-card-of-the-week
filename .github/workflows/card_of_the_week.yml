@@ -22,6 +22,12 @@ on:
           - p1p1
           - trophy-battle
           - scrape-trophies
+          - preview-deck-image
+      drafter:
+        description: 'Drafter name (preview-deck-image only; blank = random deck without a photo)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   card-of-the-week:
@@ -103,7 +109,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests pillow
+
+      # Pull any new trophy winners from Cube Cobra first so they're eligible this week.
+      # Failure here shouldn't block the battle itself.
+      - name: Scrape new trophy decks
+        continue-on-error: true
+        run: python scrape_trophies.py
 
       - name: Run trophy battle script
         env:
@@ -117,8 +129,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add trophy_battle_history.json
-          git diff --staged --quiet || git commit -m "Update trophy battle history"
+          git add trophy_battle_history.json trophy_decks.json
+          git diff --staged --quiet || git commit -m "Update trophy battle history and trophy decks"
           git push
 
   scrape-trophies:
@@ -152,3 +164,28 @@ jobs:
           git add trophy_decks.json
           git diff --staged --quiet || git commit -m "Update trophy decks"
           git push
+
+  # Test helper: posts a generated deck grid image to Discord and nothing else.
+  preview-deck-image:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'preview-deck-image'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pillow
+
+      - name: Generate and post preview image
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+        run: python trophy_battle.py --preview-image "${{ inputs.drafter }}"

@@ -25,6 +25,7 @@ DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 DISCORD_CHANNEL_ID = os.environ["DISCORD_CHANNEL_ID"]
 TROPHY_DECKS_FILE = "trophy_decks.json"
 TROPHY_HISTORY_FILE = "trophy_battle_history.json"
+CURRENT_WEEK_FILE = "current_week.json"  # snapshot of this week's Clash decks; server reloads it on restart
 
 DISCORD_API = "https://discord.com/api/v10"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/mbrunlieb/cube-card-of-the-week/main"
@@ -338,12 +339,12 @@ def parse_names(decklist: str | None) -> list[str]:
 
 
 def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, decklist_b: str | None, image_map: dict):
-    """Push this week's decks to the Cube Clash server."""
+    """
+    Push this week's decks to the Cube Clash server, and save the same payload
+    to current_week.json so the server can reload it after a restart.
+    """
     clash_url = os.environ.get("CLASH_URL")
     clash_secret = os.environ.get("CLASH_SECRET")
-    if not clash_url or not clash_secret:
-        print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash update.")
-        return False
 
     names_a = parse_names(decklist_a)
     names_b = parse_names(decklist_b)
@@ -360,8 +361,7 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         return cards
 
     payload = {
-        "secret": clash_secret,
-        "weekLabel": f"{deck_a['drafter']} vs {deck_b['drafter']} — {deck_a['event']}",
+        "weekLabel": f"{deck_a['drafter']} vs {deck_b['drafter']} — {deck_a['event'].strip()}",
         "deckA": {
             "name": deck_a["event"],
             "drafter": deck_a["drafter"],
@@ -374,13 +374,22 @@ def push_decks_to_clash(deck_a: dict, deck_b: dict, decklist_a: str | None, deck
         },
     }
 
+    # Snapshot to the repo (committed by the workflow) so Clash can self-heal on restart.
+    with open(CURRENT_WEEK_FILE, "w") as f:
+        json.dump({**payload, "generated_at": datetime.utcnow().isoformat()}, f, indent=2)
+    print(f"Saved {CURRENT_WEEK_FILE}.")
+
+    if not clash_url or not clash_secret:
+        print("Warning: CLASH_URL or CLASH_SECRET not set, skipping Cube Clash push.")
+        return False
+
     try:
-        resp = requests.post(f"{clash_url}/api/set-decks", json=payload, timeout=15)
+        resp = requests.post(f"{clash_url}/api/set-decks", json={**payload, "secret": clash_secret}, timeout=15)
         resp.raise_for_status()
         print(f"Pushed decks to Cube Clash. Status: {resp.status_code}")
         return True
     except Exception as e:
-        print(f"Warning: could not push decks to Cube Clash: {e}")
+        print(f"Warning: could not push decks to Cube Clash: {e} (server will pick up {CURRENT_WEEK_FILE} on its next restart)")
         return False
 
 # ── Deck image generation ─────────────────────────────────────────────────────

@@ -25,8 +25,14 @@ on:
           - preview-deck-image
           - push-clash-only
           - probe-winrate
+          - clear-channel
       drafter:
         description: 'Drafter name for preview-deck-image (blank = random deck without a photo), or card name for probe-winrate (blank = Uro)'
+        required: false
+        default: ''
+        type: string
+      confirm:
+        description: 'clear-channel only: leave blank to just COUNT what would be deleted; type DELETE (capitals) to really delete'
         required: false
         default: ''
         type: string
@@ -256,3 +262,32 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
         run: python card_of_the_week.py --probe-winrate "${{ inputs.drafter }}"
+
+  # Deletes every non-pinned message in the Discord channel (the channel itself is kept).
+  # Without confirm = DELETE it only counts what it would delete.
+  clear-channel:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'clear-channel'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Clear channel
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          CONFIRM: ${{ inputs.confirm }}
+          # Safety: abort unless DISCORD_CHANNEL_ID points at this exact channel name.
+          EXPECTED_CHANNEL: weekly-packs-cards-decks
+        run: python clear_channel.py

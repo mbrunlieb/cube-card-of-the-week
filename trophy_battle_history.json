@@ -1,2 +1,11 @@
 {
+  "matchups": [
+    [
+      "cc2ad82c-a12a-45ad-8e16-1ad2ba229512_seat1",
+      "eaa55a37-af65-482e-a9fa-d418ebb555f8_seat0"
+    ]
+  ],
+  "last_updated": "2026-10-10T07:14:57.620558",
+  "last_matchup": "ATPTunes vs mbrun",
+  "total_matchups": 1
 }

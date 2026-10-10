@@ -6,6 +6,14 @@ channel (so its ID, permissions and settings stay the same).
 Safe by default: unless CONFIRM is exactly "DELETE" this only COUNTS what it would remove.
 Pinned messages are always skipped.
 
+Optional date limits (YYYY-MM-DD, midnight US Central time):
+  DELETE_AFTER   delete only messages sent ON or AFTER this date (keeps everything older)
+  DELETE_BEFORE  delete only messages sent BEFORE this date (keeps everything newer)
+Use both to delete a window. With neither, every non-pinned message is deleted.
+
+Only timestamps and counts are logged, never message text or authors (the Actions logs
+of a public repo are public).
+
 The bot needs "Manage Messages" and "Read Message History" in the channel.
 
 Discord only allows bulk deletion of messages younger than 14 days; older messages
@@ -15,6 +23,9 @@ have to be deleted one at a time (rate limited, so this can take a few minutes).
 import os
 import sys
 import time
+from collections import Counter
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -25,6 +36,26 @@ BULK_MAX_AGE_MS = 13 * 24 * 60 * 60 * 1000  # stay safely inside Discord's 14-da
 
 def snowflake_ms(snowflake: str) -> int:
     return (int(snowflake) >> 22) + DISCORD_EPOCH_MS
+
+
+LOCAL_TZ = ZoneInfo("America/Chicago")
+
+
+def fmt_ms(ms: int) -> str:
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M %Z")
+
+
+def parse_date_ms(value: str, name: str) -> int | None:
+    """Parse YYYY-MM-DD as midnight US Central time -> epoch milliseconds."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        d = datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        print(f"ERROR: {name} must look like 2026-05-20 (YYYY-MM-DD), got '{value}'.")
+        sys.exit(1)
+    return int(d.replace(tzinfo=LOCAL_TZ).timestamp() * 1000)
 
 
 class Discord:
@@ -95,6 +126,11 @@ def main():
     token = os.environ["DISCORD_BOT_TOKEN"]
     channel_id = os.environ["DISCORD_CHANNEL_ID"]
     confirmed = os.environ.get("CONFIRM", "").strip() == "DELETE"
+    after_ms = parse_date_ms(os.environ.get("DELETE_AFTER", ""), "delete_after")
+    before_ms = parse_date_ms(os.environ.get("DELETE_BEFORE", ""), "delete_before")
+    if after_ms is not None and before_ms is not None and after_ms >= before_ms:
+        print("ERROR: delete_after must be an earlier date than delete_before.")
+        sys.exit(1)
 
     discord = Discord(token, channel_id)
 
@@ -117,14 +153,42 @@ def main():
     print("Reading the channel…")
     messages = discord.fetch_all_messages()
     pinned = [m for m in messages if m.get("pinned")]
-    targets = [m for m in messages if not m.get("pinned")]
+    unpinned = [m for m in messages if not m.get("pinned")]
+
+    def in_range(m: dict) -> bool:
+        t = snowflake_ms(m["id"])
+        return (after_ms is None or t >= after_ms) and (before_ms is None or t < before_ms)
+
+    targets = [m for m in unpinned if in_range(m)]
+    kept_by_date = [m for m in unpinned if not in_range(m)]
+
+    # Messages per month (US Central), so a cutoff date is easy to choose. Counts only, no content.
+    by_month = Counter(fmt_ms(snowflake_ms(m["id"]))[:7] for m in unpinned)
+    print("\nMessages in the channel by month (excluding pinned):")
+    for month in sorted(by_month):
+        print(f"  {month}: {by_month[month]}")
+
+    print("\nDate limits: " + (
+        f"delete messages sent on or after {fmt_ms(after_ms)}" if after_ms is not None else "no start date")
+        + "; " + (f"before {fmt_ms(before_ms)}" if before_ms is not None else "no end date"))
+
+    def span(msgs):
+        if not msgs:
+            return "none"
+        times = [snowflake_ms(m["id"]) for m in msgs]
+        return f"{fmt_ms(min(times))}  to  {fmt_ms(max(times))}"
+
+    print(f"  To delete ({len(targets)}): {span(targets)}")
+    print(f"  Kept because of the date limits ({len(kept_by_date)}): {span(kept_by_date)}")
+    print(f"  Kept because pinned ({len(pinned)})")
 
     now_ms = int(time.time() * 1000)
     recent = [m["id"] for m in targets if now_ms - snowflake_ms(m["id"]) < BULK_MAX_AGE_MS]
     old = [m["id"] for m in targets if now_ms - snowflake_ms(m["id"]) >= BULK_MAX_AGE_MS]
 
-    print(f"Found {len(messages)} messages: {len(targets)} to delete "
-          f"({len(recent)} recent, {len(old)} older than ~2 weeks), {len(pinned)} pinned (kept).")
+    print(f"\nFound {len(messages)} messages: {len(targets)} to delete "
+          f"({len(recent)} recent, {len(old)} older than ~2 weeks), "
+          f"{len(kept_by_date)} kept by date, {len(pinned)} pinned (kept).")
 
     if not confirmed:
         print(f"\nDRY RUN: nothing was deleted. This would act on #{ch.get('name')}.")
@@ -149,7 +213,8 @@ def main():
         if n % 25 == 0 or n == len(old):
             print(f"  Deleted {deleted}/{len(targets)}…")
 
-    print(f"\nDone. Deleted {deleted} of {len(targets)} messages; {len(pinned)} pinned kept.")
+    print(f"\nDone. Deleted {deleted} of {len(targets)} messages; "
+          f"{len(kept_by_date)} kept by date, {len(pinned)} pinned kept.")
     if deleted < len(targets):
         print(f"{len(targets) - deleted} messages could not be deleted (see the errors above).")
 

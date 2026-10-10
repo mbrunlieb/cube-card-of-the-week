@@ -163,21 +163,28 @@ def _norm(name) -> str:
 
 
 def seat_identity(seat: dict) -> dict:
+    """
+    A seat's `name` is the DECK's label (e.g. 'WUR Artifacts', 'BG'), not the player's name.
+    The only real player identity is `owner`, present only when the drafter was a Cube Cobra user.
+    """
     owner = seat.get("owner")
     if isinstance(owner, dict):
-        owner_id = owner.get("id") or owner.get("_id")
-        owner_name = owner.get("username")
-    else:
-        owner_id, owner_name = owner, None
-    return {"name": _norm(seat.get("name")), "owner_id": owner_id, "owner_name": _norm(owner_name)}
+        return {"owner_id": owner.get("id") or owner.get("_id"), "owner_name": _norm(owner.get("username"))}
+    return {"owner_id": owner if isinstance(owner, str) else None, "owner_name": ""}
 
 
 def match_players_to_seats(players: list[dict], seats: list[dict]) -> dict[str, int]:
-    """Map record player names -> seat index (by Cube Cobra user ID first, then by name)."""
+    """
+    Map record player names -> seat index.
+      1. Logged-in drafters: match record userId / username to the seat owner.
+      2. Everyone else: record players are listed in seat order, so when the player
+         and seat counts agree, player i is the drafter of seat i.
+    """
     idents = [seat_identity(s) for s in seats]
     result: dict[str, int] = {}
     used: set[int] = set()
-    for p in players:  # pass 1: user ID
+
+    for p in players:  # 1a: user ID
         uid = p.get("userId")
         if not uid:
             continue
@@ -186,16 +193,38 @@ def match_players_to_seats(players: list[dict], seats: list[dict]) -> dict[str, 
                 result[p["name"]] = i
                 used.add(i)
                 break
-    for p in players:  # pass 2: name
+    for p in players:  # 1b: Cube Cobra username
         if p["name"] in result:
             continue
         n = _norm(p["name"])
         for i, ident in enumerate(idents):
-            if i not in used and n and n in (ident["name"], ident["owner_name"]):
+            if i not in used and n and n == ident["owner_name"]:
                 result[p["name"]] = i
                 used.add(i)
                 break
+
+    if len(players) == len(seats):  # 2: seat order
+        for i, p in enumerate(players):
+            if p["name"] not in result and i not in used:
+                result[p["name"]] = i
+                used.add(i)
     return result
+
+
+def owner_consistency(players: list[dict], seats: list[dict], mapping: dict[str, int]) -> tuple[int, int]:
+    """Sanity check: for seats with a known owner, did the mapped player match that owner?"""
+    ok = total = 0
+    for p in players:
+        i = mapping.get(p["name"])
+        if i is None:
+            continue
+        ident = seat_identity(seats[i])
+        if not (ident["owner_id"] or ident["owner_name"]):
+            continue
+        total += 1
+        if (p.get("userId") and str(p["userId"]) == str(ident["owner_id"])) or _norm(p["name"]) == ident["owner_name"]:
+            ok += 1
+    return ok, total
 
 
 def player_results(record: dict) -> dict[str, dict]:
@@ -287,10 +316,12 @@ def fetch_winrate_data(cube_cards: list[dict] | None = None, verbose: bool = Fal
         results = player_results(rec)
         trophy_names = set(rec.get("trophy") or [])
         unmatched = [p["name"] for p in rec.get("players", []) if p["name"] not in mapping]
-        print(f"  {label}: {len(mapping)}/{len(rec.get('players', []))} players matched to seats"
-              + (f" (unmatched: {unmatched})" if unmatched else ""))
-        if verbose and unmatched:
-            print(f"    seat names: {[ (s.get('name'), s.get('owner')) for s in seats ]}")
+        ok, total = owner_consistency(rec.get("players", []), seats, mapping)
+        print(f"  {label}: {len(mapping)}/{len(rec.get('players', []))} players matched "
+              f"({len(rec.get('players', []))} players, {len(seats)} seats; owner check {ok}/{total})"
+              + (f" UNMATCHED: {unmatched}" if unmatched else ""))
+        if verbose and total and ok < total:
+            print("    WARNING: some seat owners don't match the player assigned to that seat")
 
         for pname, seat_idx in mapping.items():
             oracles, unresolved = set(), set()

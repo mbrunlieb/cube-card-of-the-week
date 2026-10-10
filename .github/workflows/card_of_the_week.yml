@@ -24,8 +24,9 @@ on:
           - scrape-trophies
           - preview-deck-image
           - push-clash-only
+          - probe-winrate
       drafter:
-        description: 'Drafter name (preview-deck-image only; blank = random deck without a photo)'
+        description: 'Drafter name for preview-deck-image (blank = random deck without a photo), or card name for probe-winrate (blank = Uro)'
         required: false
         default: ''
         type: string
@@ -229,3 +230,29 @@ jobs:
           git add current_week.json
           git diff --staged --quiet || git commit -m "Update current week (test push)"
           git push
+
+  # Diagnostic: computes win rates from Cube Cobra's records and prints one card's numbers.
+  # Posts nothing to Discord and changes nothing in the repo.
+  probe-winrate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'probe-winrate'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Compute winrates and print one card
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+        run: python card_of_the_week.py --probe-winrate "${{ inputs.drafter }}"

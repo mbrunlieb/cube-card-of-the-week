@@ -36,6 +36,16 @@ on:
         required: false
         default: ''
         type: string
+      delete_after:
+        description: 'clear-channel only, optional: only delete messages sent ON or AFTER this date (YYYY-MM-DD, US Central). Older messages are kept'
+        required: false
+        default: ''
+        type: string
+      delete_before:
+        description: 'clear-channel only, optional: only delete messages sent BEFORE this date (YYYY-MM-DD, US Central). Newer messages are kept'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   card-of-the-week:
@@ -288,6 +298,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           CONFIRM: ${{ inputs.confirm }}
+          DELETE_AFTER: ${{ inputs.delete_after }}
+          DELETE_BEFORE: ${{ inputs.delete_before }}
           # Safety: abort unless DISCORD_CHANNEL_ID points at this exact channel name.
           EXPECTED_CHANNEL: weekly-packs-cards-decks
         run: python clear_channel.py

@@ -10,6 +10,9 @@ import json
 import os
 import random
 import re
+import sys
+import time
+from collections import defaultdict
 from datetime import datetime
 
 import requests
@@ -66,42 +69,268 @@ def fetch_cube_cards():
     return cards
 
 
-def fetch_winrate_data():
+# ── Win rate data ─────────────────────────────────────────────────────────────
+# Cube Cobra no longer embeds a precomputed per-card winrate blob in the records
+# page. It embeds the raw records instead (players, match results, draft IDs), so
+# we compute per-card stats ourselves:
+#   records page  -> who played whom and the results, plus each record's draft ID
+#   deck pages    -> every seat's deck for that draft
+#   combine       -> for each card, the decks it was in and how those decks did
+
+SCRYFALL_HEADERS = {
+    "User-Agent": "CubeCardOfTheWeekBot/1.0 (github.com/mbrunlieb/cube-card-of-the-week)",
+    "Accept": "application/json",
+}
+
+
+def _fix_js_literals(text: str) -> str:
+    """Cube Cobra's embedded props are a JS literal, not strict JSON: 'undefined' -> null."""
+    return re.sub(r'([:,\[]\s*)undefined(?=\s*[,}\]])', r"\1null", text)
+
+
+def extract_react_props(html: str) -> dict | None:
+    """Pull the window.reactProps object out of a Cube Cobra page."""
+    i = html.find("window.reactProps")
+    if i == -1:
+        return None
+    start = html.find("{", i)
+    end = html.find("</script>", start)
+    chunk = _fix_js_literals(html[start:end if end != -1 else None])
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(chunk)
+        return obj
+    except json.JSONDecodeError as e:
+        print(f"Warning: could not parse reactProps: {e}")
+        return None
+
+
+def find_records(obj, depth: int = 0) -> list[dict] | None:
+    """Find the list of records (dicts with 'matches') anywhere in the props."""
+    if depth > 6:
+        return None
+    if isinstance(obj, dict):
+        recs = obj.get("records")
+        if isinstance(recs, list) and recs and isinstance(recs[0], dict) and "matches" in recs[0]:
+            return recs
+        for v in obj.values():
+            found = find_records(v, depth + 1)
+            if found:
+                return found
+    elif isinstance(obj, list):
+        for v in obj[:50]:
+            found = find_records(v, depth + 1)
+            if found:
+                return found
+    return None
+
+
+def fetch_draft(draft_id: str) -> tuple[list[dict], list[dict]] | None:
+    """Fetch a draft's deck page and return (cards, seats)."""
+    url = f"https://cubecobra.com/cube/deck/{draft_id}?seat=0"
+    resp = requests.get(url, headers=HEADERS, timeout=60)
+    resp.raise_for_status()
+    html = _fix_js_literals(resp.text)
+
+    seats_m = re.search(r'"seats"\s*:\s*\[', html)
+    if not seats_m:
+        print(f"  Warning: no seats array on deck page for draft {draft_id}")
+        return None
+    decoder = json.JSONDecoder()
+    seats, _ = decoder.raw_decode(html, seats_m.end() - 1)
+
+    cards_pos = -1
+    for m in re.finditer(r'"cards"\s*:\s*\[', html[:seats_m.start()]):
+        cards_pos = m.end() - 1  # keep the last one before "seats"
+    if cards_pos == -1:
+        print(f"  Warning: no cards array on deck page for draft {draft_id}")
+        return None
+    cards, _ = decoder.raw_decode(html, cards_pos)
+    return cards, seats
+
+
+def _flatten_ints(x):
+    if isinstance(x, bool):
+        return
+    if isinstance(x, int):
+        yield x
+    elif isinstance(x, list):
+        for item in x:
+            yield from _flatten_ints(item)
+
+
+def _norm(name) -> str:
+    return re.sub(r"\s+", " ", str(name or "")).strip().lower()
+
+
+def seat_identity(seat: dict) -> dict:
+    owner = seat.get("owner")
+    if isinstance(owner, dict):
+        owner_id = owner.get("id") or owner.get("_id")
+        owner_name = owner.get("username")
+    else:
+        owner_id, owner_name = owner, None
+    return {"name": _norm(seat.get("name")), "owner_id": owner_id, "owner_name": _norm(owner_name)}
+
+
+def match_players_to_seats(players: list[dict], seats: list[dict]) -> dict[str, int]:
+    """Map record player names -> seat index (by Cube Cobra user ID first, then by name)."""
+    idents = [seat_identity(s) for s in seats]
+    result: dict[str, int] = {}
+    used: set[int] = set()
+    for p in players:  # pass 1: user ID
+        uid = p.get("userId")
+        if not uid:
+            continue
+        for i, ident in enumerate(idents):
+            if i not in used and ident["owner_id"] and str(ident["owner_id"]) == str(uid):
+                result[p["name"]] = i
+                used.add(i)
+                break
+    for p in players:  # pass 2: name
+        if p["name"] in result:
+            continue
+        n = _norm(p["name"])
+        for i, ident in enumerate(idents):
+            if i not in used and n and n in (ident["name"], ident["owner_name"]):
+                result[p["name"]] = i
+                used.add(i)
+                break
+    return result
+
+
+def player_results(record: dict) -> dict[str, dict]:
+    """Per-player match/game results from a record's rounds."""
+    out = defaultdict(lambda: {"mw": 0, "ml": 0, "md": 0, "gw": 0, "gl": 0})
+    for rnd in record.get("matches", []):
+        for m in rnd.get("matches", []):
+            p1, p2 = m.get("p1"), m.get("p2")
+            r = m.get("results") or []
+            if not p1 or not p2 or len(r) < 2:
+                continue  # byes / incomplete
+            a, b = r[0], r[1]
+            for me, opp, g_for, g_against in ((p1, p2, a, b), (p2, p1, b, a)):
+                out[me]["gw"] += g_for
+                out[me]["gl"] += g_against
+                if g_for > g_against:
+                    out[me]["mw"] += 1
+                elif g_for < g_against:
+                    out[me]["ml"] += 1
+                else:
+                    out[me]["md"] += 1
+    return out
+
+
+def scryfall_oracle_ids(card_ids: list[str]) -> dict[str, str]:
+    """Resolve Scryfall card IDs -> oracle IDs."""
+    resolved = {}
+    for i in range(0, len(card_ids), 75):
+        chunk = card_ids[i:i + 75]
+        try:
+            resp = requests.post(
+                "https://api.scryfall.com/cards/collection",
+                json={"identifiers": [{"id": cid} for cid in chunk]},
+                headers=SCRYFALL_HEADERS, timeout=30,
+            )
+            if not resp.ok:
+                print(f"  Scryfall lookup error {resp.status_code}: {resp.text[:200]}")
+                continue
+            for c in resp.json().get("data", []):
+                if c.get("oracle_id"):
+                    resolved[c["id"]] = c["oracle_id"]
+            time.sleep(0.1)
+        except Exception as e:
+            print(f"  Warning: Scryfall oracle lookup failed: {e}")
+    return resolved
+
+
+def fetch_winrate_data(cube_cards: list[dict] | None = None, verbose: bool = False) -> dict:
     """
-    Scrape the records page HTML and extract the winrate JSON blob.
-    Returns a dict keyed by oracle_id -> {decks, matchWins, matchLosses, ...}
+    Compute per-card stats from the cube's records.
+    Returns {oracle_id: {decks, matchWins, matchLosses, matchDraws, gameWins, gameLosses, trophies}}.
     """
     resp = requests.get(CUBE_RECORDS_URL, headers=HEADERS, timeout=60)
     resp.raise_for_status()
-    html = resp.text
-
-    uuid_pattern = re.compile(
-        r'(\{"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"\s*:\s*\{"decks")',
-    )
-    match = uuid_pattern.search(html)
-    if not match:
-        print("Warning: could not locate winrate data in page source.")
+    props = extract_react_props(resp.text)
+    records = find_records(props) if props else None
+    if not records:
+        print("Warning: could not locate records in the records page.")
         return {}
+    print(f"Found {len(records)} records.")
 
-    start = match.start()
-    depth = 0
-    end = start
-    for i, ch in enumerate(html[start:], start=start):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
+    # cardID (printing) -> oracle_id, from the cube list we already have
+    cube_map = {}
+    for c in cube_cards or []:
+        cid, oid = c.get("cardID"), (c.get("details") or {}).get("oracle_id")
+        if cid and oid:
+            cube_map[cid] = oid
 
-    try:
-        winrate_data = json.loads(html[start:end])
-        print(f"Loaded winrate data for {len(winrate_data)} cards.")
-        return winrate_data
-    except json.JSONDecodeError as e:
-        print(f"Warning: failed to parse winrate JSON: {e}")
-        return {}
+    # Phase 1: gather every deck (as card IDs) with its owner's results
+    decks = []  # {"oracles": set, "unresolved": set(cardIDs), "res": {...}, "trophy": bool}
+    for rec in records:
+        draft_id = rec.get("draft")
+        label = (rec.get("name") or "").strip()
+        if not draft_id:
+            print(f"  Skipping '{label}': no draft ID")
+            continue
+        try:
+            draft = fetch_draft(draft_id)
+        except Exception as e:
+            print(f"  Warning: could not fetch draft for '{label}': {e}")
+            continue
+        time.sleep(0.5)
+        if not draft:
+            continue
+        cards, seats = draft
+        if verbose and not decks:
+            print(f"  Seat keys (first draft): {sorted(seats[0].keys()) if seats else 'none'}")
+        mapping = match_players_to_seats(rec.get("players", []), seats)
+        results = player_results(rec)
+        trophy_names = set(rec.get("trophy") or [])
+        unmatched = [p["name"] for p in rec.get("players", []) if p["name"] not in mapping]
+        print(f"  {label}: {len(mapping)}/{len(rec.get('players', []))} players matched to seats"
+              + (f" (unmatched: {unmatched})" if unmatched else ""))
+        if verbose and unmatched:
+            print(f"    seat names: {[ (s.get('name'), s.get('owner')) for s in seats ]}")
+
+        for pname, seat_idx in mapping.items():
+            oracles, unresolved = set(), set()
+            for idx in set(_flatten_ints(seats[seat_idx].get("mainboard", []))):
+                if idx >= len(cards):
+                    continue
+                card = cards[idx]
+                cid = card.get("cardID") or (card.get("details") or {}).get("scryfall_id")
+                oid = (card.get("details") or {}).get("oracle_id") or cube_map.get(cid)
+                if oid:
+                    oracles.add(oid)
+                elif cid:
+                    unresolved.add(cid)
+            decks.append({"oracles": oracles, "unresolved": unresolved,
+                          "res": results.get(pname, {"mw": 0, "ml": 0, "md": 0, "gw": 0, "gl": 0}),
+                          "trophy": pname in trophy_names})
+
+    # Phase 2: resolve any printings not in the current cube list
+    all_unresolved = sorted({cid for d in decks for cid in d["unresolved"]})
+    if all_unresolved:
+        print(f"Resolving {len(all_unresolved)} card printings via Scryfall…")
+        resolved = scryfall_oracle_ids(all_unresolved)
+        for d in decks:
+            d["oracles"] |= {resolved[c] for c in d["unresolved"] if c in resolved}
+
+    # Phase 3: aggregate per card
+    stats: dict[str, dict] = {}
+    for d in decks:
+        for oid in d["oracles"]:
+            st = stats.setdefault(oid, {"decks": 0, "matchWins": 0, "matchLosses": 0, "matchDraws": 0,
+                                        "gameWins": 0, "gameLosses": 0, "trophies": 0})
+            st["decks"] += 1
+            st["matchWins"] += d["res"]["mw"]
+            st["matchLosses"] += d["res"]["ml"]
+            st["matchDraws"] += d["res"]["md"]
+            st["gameWins"] += d["res"]["gw"]
+            st["gameLosses"] += d["res"]["gl"]
+            st["trophies"] += 1 if d["trophy"] else 0
+    print(f"Computed winrate data for {len(stats)} cards from {len(decks)} decks.")
+    return stats
 
 
 def fetch_combos(oracle_ids: list[str]) -> list[dict]:
@@ -158,17 +387,19 @@ def format_winrate(oracle_id: str, winrate_data: dict) -> str | None:
         return None
     mw = stats.get("matchWins", 0)
     ml = stats.get("matchLosses", 0)
-    total_matches = mw + ml
+    md = stats.get("matchDraws", 0)
+    total_matches = mw + ml + md  # a drawn match counts as played, not won (same as Cube Cobra)
     if total_matches == 0:
         return None
     match_wr = round(100 * mw / total_matches, 1)
+    record_str = f"{mw}W–{ml}L" + (f"–{md}D" if md else "")
     gw = stats.get("gameWins", 0)
     gl = stats.get("gameLosses", 0)
     total_games = gw + gl
     game_wr = round(100 * gw / total_games, 1) if total_games > 0 else 0
     trophies = stats.get("trophies", 0)
     trophy_str = f" 🏆 {trophies} {'trophy' if trophies == 1 else 'trophies'}"
-    return (f"Match: {match_wr}% ({mw}W–{ml}L) | "
+    return (f"Match: {match_wr}% ({record_str}) | "
             f"Game: {game_wr}% ({gw}W–{gl}L) | "
             f"{decks} deck{'s' if decks != 1 else ''} | {trophy_str}")
 
@@ -269,7 +500,7 @@ def main():
 
     print("Fetching winrate data…")
     try:
-        winrate_data = fetch_winrate_data()
+        winrate_data = fetch_winrate_data(cards)
     except Exception as e:
         print(f"Warning: could not fetch winrate data: {e}")
         winrate_data = {}
@@ -307,5 +538,29 @@ def main():
     print("Done!")
 
 
+def probe_winrate(card_name: str):
+    """Diagnostic: compute winrate data and print the numbers for one card (no Discord post)."""
+    cards = fetch_cube_cards()
+    data = fetch_winrate_data(cards, verbose=True)
+    target = next((c for c in cards if (c.get("details") or {}).get("name", "").lower() == card_name.lower()), None)
+    if not target:
+        print(f"'{card_name}' not found in the cube list.")
+        return
+    oid = target["details"]["oracle_id"]
+    st = data.get(oid)
+    print(f"\n=== {card_name} ===")
+    if not st:
+        print("No data for this card.")
+    else:
+        total = st["matchWins"] + st["matchLosses"] + st["matchDraws"]
+        print(f"decks={st['decks']}  matches={total}  record={st['matchWins']}W-{st['matchLosses']}L-{st['matchDraws']}D  "
+              f"games={st['gameWins']}-{st['gameLosses']}  trophies={st['trophies']}")
+    print(f"Discord string would be: {format_winrate(oid, data)}")
+    print("Cube Cobra's own page showed Uro, Titan of Nature's Wrath at 9 decks / 28 matches.")
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--probe-winrate":
+        probe_winrate(" ".join(sys.argv[2:]) or "Uro, Titan of Nature's Wrath")
+    else:
+        main()

@@ -2,12 +2,19 @@ name: Card of the Week
 
 on:
   schedule:
-    # Card of the Week — Mondays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
-    - cron: "0 18 * * 1"
-    # P1P1 — Wednesdays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
-    - cron: "0 18 * * 3"
-    # Trophy Battle — Fridays at 6:00 PM UTC (1 PM CDT / 12 PM CST)
-    - cron: "0 18 * * 5"
+    # Everything posts at 10:00 AM US Central, all year. GitHub crons are UTC-only and ignore
+    # daylight saving, so each post is scheduled at BOTH possible UTC times and the `gate` job
+    # below lets through only the one that matches the current Central offset:
+    #   15:00 UTC = 10 AM CDT (summer)     16:00 UTC = 10 AM CST (winter)
+    # Card of the Week - Mondays
+    - cron: "0 15 * * 1"
+    - cron: "0 16 * * 1"
+    # P1P1 - Wednesdays
+    - cron: "0 15 * * 3"
+    - cron: "0 16 * * 3"
+    # Trophy Battle - Fridays
+    - cron: "0 15 * * 5"
+    - cron: "0 16 * * 5"
 
   # Allows manual triggering from the GitHub Actions tab
   workflow_dispatch:
@@ -48,9 +55,34 @@ on:
         type: string
 
 jobs:
+  # Decides whether a scheduled run is the right one of the two daily triggers.
+  # Manual (workflow_dispatch) runs always pass.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - name: Is this the 10 AM Central trigger?
+        id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "Manual run: go."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          OFFSET=$(TZ=America/Chicago date -d "${NOW:-now}" +%z)   # -0500 = CDT, -0600 = CST
+          TRIGGER_HOUR=$(echo "$SCHEDULE" | awk '{print $2}')       # 15 or 16 (UTC)
+          if [ "$OFFSET" = "-0500" ]; then WANT=15; else WANT=16; fi
+          echo "Central offset $OFFSET -> the $WANT:00 UTC trigger is the 10 AM one; this is the $TRIGGER_HOUR:00 UTC trigger."
+          if [ "$TRIGGER_HOUR" = "$WANT" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; else echo "Skipping: wrong trigger for the current daylight-saving offset."; echo "go=false" >> "$GITHUB_OUTPUT"; fi
+
   card-of-the-week:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.job == 'card-of-the-week')
+    needs: gate
+    if: needs.gate.outputs.go == 'true' && ((github.event_name == 'schedule' && (github.event.schedule == '0 15 * * 1' || github.event.schedule == '0 16 * * 1')) || (github.event_name == 'workflow_dispatch' && inputs.job == 'card-of-the-week'))
 
     permissions:
       contents: write
@@ -85,7 +117,8 @@ jobs:
 
   p1p1:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 3') || (github.event_name == 'workflow_dispatch' && inputs.job == 'p1p1')
+    needs: gate
+    if: needs.gate.outputs.go == 'true' && ((github.event_name == 'schedule' && (github.event.schedule == '0 15 * * 3' || github.event.schedule == '0 16 * * 3')) || (github.event_name == 'workflow_dispatch' && inputs.job == 'p1p1'))
 
     steps:
       - name: Check out repository
@@ -110,7 +143,8 @@ jobs:
 
   trophy-battle:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'schedule' && github.event.schedule == '0 18 * * 5') || (github.event_name == 'workflow_dispatch' && inputs.job == 'trophy-battle')
+    needs: gate
+    if: needs.gate.outputs.go == 'true' && ((github.event_name == 'schedule' && (github.event.schedule == '0 15 * * 5' || github.event.schedule == '0 16 * * 5')) || (github.event_name == 'workflow_dispatch' && inputs.job == 'trophy-battle'))
 
     permissions:
       contents: write

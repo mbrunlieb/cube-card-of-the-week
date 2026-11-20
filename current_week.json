@@ -1,17 +1,17 @@
 {
-  "weekLabel": "ATPTunes vs TannerGold \u2014 Team cube draft - February 2026",
+  "weekLabel": "mbrun vs ButterFriend \u2014 Team cube draft - August 2025",
   "deckA": {
-    "name": "Team cube draft - February 2026",
-    "drafter": "ATPTunes",
+    "name": "Team cube draft - August 2025",
+    "drafter": "mbrun",
     "cards": [
       {
-        "name": "Animate Dead",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/f/0fc3ed63-96ee-420c-bde1-e0c904059931.jpg?1783948570",
+        "name": "Arc Trail",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/4/445e3a0a-29a7-4dc0-80fe-569b9e751db3.jpg?1783941727",
         "imageUrlBack": null
       },
       {
-        "name": "Archon of Cruelty",
-        "imageUrl": "https://cards.scryfall.io/normal/front/1/b/1be9d9a4-d7ee-4854-abc2-85cabf993ec9.jpg?1783926865",
+        "name": "Arcane Denial",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/a/2a648138-8be1-4c33-b53c-b95037c6cb4a.jpg?1783936299",
         "imageUrlBack": null
       },
       {
@@ -20,23 +20,13 @@
         "imageUrlBack": null
       },
       {
-        "name": "Bitter Triumph",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/5/05bdd22c-3e11-4c29-bdfa-d3dfc0e90a9f.jpg?1783913783",
+        "name": "Blood Crypt",
+        "imageUrl": "https://cards.scryfall.io/normal/front/1/7/1716b4dd-9045-462b-b053-72de450a8cde.jpg?1783927084",
         "imageUrlBack": null
       },
       {
-        "name": "Brainsurge",
-        "imageUrl": "https://cards.scryfall.io/normal/front/9/5/95a6997b-a8b1-4655-a9b0-5f9a305ca96e.jpg?1783911175",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Dance of the Dead",
-        "imageUrl": "https://cards.scryfall.io/normal/front/e/7/e7c53ba4-9956-4cd6-85ca-2d6b61a5127c.jpg?1783947505",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Dauthi Voidwalker",
-        "imageUrl": "https://cards.scryfall.io/normal/front/d/c/dce5db87-4a78-4b8d-b5c2-918ccd1ba4e3.jpg?1783926864",
+        "name": "Contaminated Landscape",
+        "imageUrl": "https://cards.scryfall.io/normal/front/e/2/e2312c49-1627-47ad-8113-78a999a97d8d.jpg?1783911240",
         "imageUrlBack": null
       },
       {
@@ -45,68 +35,78 @@
         "imageUrlBack": null
       },
       {
-        "name": "Entomb",
-        "imageUrl": "https://cards.scryfall.io/normal/front/5/d/5dba0068-c63f-4699-b630-a56b26ad8239.jpg?1783937600",
+        "name": "Flooded Strand",
+        "imageUrl": "https://cards.scryfall.io/normal/front/b/4/b4e3d844-d3b4-41d8-921d-c1cb3af343f8.jpg?1783945029",
         "imageUrlBack": null
       },
       {
-        "name": "Flash",
-        "imageUrl": "https://cards.scryfall.io/normal/front/d/3/d31459c2-9656-4e9a-bb72-71a910e8570b.jpg?1783935178",
+        "name": "Frantic Search",
+        "imageUrl": "https://cards.scryfall.io/normal/front/1/9/1904db14-6df7-424f-afa5-e3dfab31300a.jpg?1783946247",
         "imageUrlBack": null
       },
       {
-        "name": "Grief",
-        "imageUrl": "https://cards.scryfall.io/normal/front/e/a/ea859431-c1bf-4d07-9845-430bc217cb91.jpg?1783926771",
+        "name": "Galvanic Blast",
+        "imageUrl": "https://cards.scryfall.io/normal/front/f/5/f5881bbc-8600-464d-9dcd-5a7780918d1d.jpg?1792506474",
         "imageUrlBack": null
       },
       {
-        "name": "Harvester of Misery",
-        "imageUrl": "https://cards.scryfall.io/normal/front/a/3/a3012af9-621d-4fae-b00d-079a89ae35fe.jpg?1783912001",
+        "name": "Grinding Station",
+        "imageUrl": "https://cards.scryfall.io/normal/front/d/f/df1df511-b52c-45cd-9503-ffce4271a802.jpg?1783944380",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Isochron Scepter",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/a/2aa24fe0-e275-4307-b26c-2a656068a451.jpg?1783930107",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Lightning Bolt",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/5/9521375e-0bc1-45ef-b513-6d332a25f9d2.jpg?1783947826",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Lion's Eye Diamond",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/3/63bacc32-d6ba-420c-9b49-299c08e5fb39.jpg?1783947041",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Lose Focus",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/8/985bdb0c-ce6c-4506-8163-76f3b2fdf5fb.jpg?1792506017",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Lotus Petal",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/c/6c877da3-68fa-41d0-8a24-8c79fcd8ecc1.jpg?1783946602",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Lurrus of the Dream-Den",
+        "imageUrl": "https://cards.scryfall.io/normal/front/5/a/5ad36fb2-c44e-4085-ba0d-54277841ad3a.jpg?1783931010",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Mana Leak",
+        "imageUrl": "https://cards.scryfall.io/normal/front/a/7/a7c7757d-8036-4b33-a1cb-07795d392588.jpg?1783941824",
         "imageUrlBack": null
       },
       {
-        "name": "Island",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/000f1f50-08e5-4d83-8159-98f06a0e2279.jpg?1783932574",
+        "name": "Marsh Flats",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/e/4e8397e6-d13a-4996-8fde-b8a9895de287.jpg?1783926703",
         "imageUrlBack": null
       },
       {
-        "name": "L\u00f3rien Revealed",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/c/0ce44270-a684-4489-9077-521456e6dfaa.jpg?1783916314",
+        "name": "Memory Lapse",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/3/63453ed9-5cf1-4cad-b173-a067f22a4405.jpg?1783947111",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Miscalculation",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/b/4b4956a2-9a39-4152-9c98-70e4b2acfa26.jpg?1783946245",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Mishra's Bauble",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/5/45bbbf9b-8fee-4c32-a513-02dac6ac8a39.jpg?1783930102",
         "imageUrlBack": null
       },
       {
@@ -115,169 +115,8 @@
         "imageUrlBack": null
       },
       {
-        "name": "Necromancy",
-        "imageUrl": "https://cards.scryfall.io/normal/front/3/1/311a6257-dd77-4bb6-81cb-c8e7862350f3.jpg?1783946992",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Nethergoyf",
-        "imageUrl": "https://cards.scryfall.io/normal/front/3/e/3ee3945e-5089-4751-b7b3-5961c39d2a33.jpg?1783911277",
-        "imageUrlBack": null
-      },
-      {
         "name": "Occult Epiphany",
         "imageUrl": "https://cards.scryfall.io/normal/front/6/9/6920c895-bc98-4871-a53f-219fa27a74e5.jpg?1783925004",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Pest Infestation",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/7/4720b4f2-e6af-4223-9250-a0ed21ed5693.jpg?1792506360",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Phyrexian Metamorph",
-        "imageUrl": "https://cards.scryfall.io/normal/front/d/2/d2e27911-87cb-49a0-a34f-6afe4bddd592.jpg?1783941318",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Recurring Nightmare",
-        "imageUrl": "https://cards.scryfall.io/normal/front/c/8/c8173030-1c33-417c-b8e9-79231b6a85a7.jpg?1783946516",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Snuff Out",
-        "imageUrl": "https://cards.scryfall.io/normal/front/1/8/18a3cca1-e50e-49b6-9e1a-f86640e3b177.jpg?1783945946",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Swamp",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/0/00030770-5e99-4943-819d-8d807c24cc14.jpg?1783930489",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Triplicate Titan",
-        "imageUrl": "https://cards.scryfall.io/normal/front/5/6/568dd5a6-86f4-4039-87d7-812120c8ab94.jpg?1783927584",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Troll of Khazad-d\u00fbm",
-        "imageUrl": "https://cards.scryfall.io/normal/front/a/6/a6539e26-b63b-4725-9407-caaf451de084.jpg?1783916292",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Unmarked Grave",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/9/492b368b-de32-45c1-8459-238aae54f9fc.jpg?1783926852",
-        "imageUrlBack": null
-      }
-    ]
-  },
-  "deckB": {
-    "name": "Team cube draft - October 2025",
-    "drafter": "TannerGold",
-    "cards": [
-      {
-        "name": "Agatha's Soul Cauldron",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/1/019b51b0-e5c6-4208-922b-7736686dddcd.jpg?1783915059",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Archon of Cruelty",
-        "imageUrl": "https://cards.scryfall.io/normal/front/1/b/1be9d9a4-d7ee-4854-abc2-85cabf993ec9.jpg?1783926865",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Bitter Triumph",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/5/05bdd22c-3e11-4c29-bdfa-d3dfc0e90a9f.jpg?1783913783",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Bloodchief's Thirst",
-        "imageUrl": "https://cards.scryfall.io/normal/front/0/5/059e8447-6b1c-4651-a734-a8fea2cbf7b2.jpg?1783929380",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Braids, Cabal Minion",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/d/4dcdcad5-e4fb-480e-984f-1ac5cdc986b9.jpg?1783945253",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Chthonian Nightmare",
-        "imageUrl": "https://cards.scryfall.io/normal/front/5/9/59cbd637-30d1-4c3c-95ce-b6c6f9248d15.jpg?1783911173",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Damn",
-        "imageUrl": "https://cards.scryfall.io/normal/front/e/f/efeae088-9ac5-4d2f-a15c-d8675a471ac5.jpg?1783926863",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Dance of the Dead",
-        "imageUrl": "https://cards.scryfall.io/normal/front/e/7/e7c53ba4-9956-4cd6-85ca-2d6b61a5127c.jpg?1783947505",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Exhume",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/1/41c79afa-8f88-48bd-9122-984327d3e54d.jpg?1783945892",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Grave Titan",
-        "imageUrl": "https://cards.scryfall.io/normal/front/5/f/5fa6d385-6b8e-45ad-83dc-b477799c05a5.jpg?1783941816",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Gravecrawler",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/8/48d73cb5-22ac-43df-9c4b-0c860bb80b3e.jpg?1792505910",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Griselbrand",
-        "imageUrl": "https://cards.scryfall.io/normal/front/c/f/cf2a5c2e-7fe1-45eb-b01c-891ab961186f.jpg?1783936655",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Liliana of the Veil",
-        "imageUrl": "https://cards.scryfall.io/normal/front/a/c/ac506c17-adc8-49c6-9d8d-43db7cb1ec9d.jpg?1783940954",
-        "imageUrlBack": null
-      },
-      {
-        "name": "Necromancy",
-        "imageUrl": "https://cards.scryfall.io/normal/front/3/1/311a6257-dd77-4bb6-81cb-c8e7862350f3.jpg?1783946992",
         "imageUrlBack": null
       },
       {
@@ -286,46 +125,202 @@
         "imageUrlBack": null
       },
       {
-        "name": "Reanimate",
-        "imageUrl": "https://cards.scryfall.io/normal/front/a/e/ae1ef31c-8ca5-444c-8f39-e1d1827318f5.jpg?1783946636",
+        "name": "Otawara, Soaring City",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/8/486d7edc-d983-41f0-8b78-c99aecd72996.jpg?1783923816",
         "imageUrlBack": null
       },
       {
-        "name": "Recurring Nightmare",
-        "imageUrl": "https://cards.scryfall.io/normal/front/c/8/c8173030-1c33-417c-b8e9-79231b6a85a7.jpg?1783946516",
+        "name": "Ponder",
+        "imageUrl": "https://cards.scryfall.io/normal/front/8/1/81c908ee-e70a-4406-a32d-ab5ab17e67b1.jpg?1783941088",
         "imageUrlBack": null
       },
       {
-        "name": "Sephiroth, Fabled SOLDIER",
-        "imageUrl": "https://cards.scryfall.io/normal/front/8/5/85eaf5e7-77dc-4842-a70c-ce4ac7f724df.jpg?1783906617",
-        "imageUrlBack": "https://cards.scryfall.io/normal/back/8/5/85eaf5e7-77dc-4842-a70c-ce4ac7f724df.jpg?1783906617"
+        "name": "Sink into Stupor",
+        "imageUrl": "https://cards.scryfall.io/normal/front/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1783911236",
+        "imageUrlBack": "https://cards.scryfall.io/normal/back/5/3/5358b87a-1a29-426d-b165-40c97da2c14d.jpg?1783911236"
       },
       {
-        "name": "The Meathook Massacre",
-        "imageUrl": "https://cards.scryfall.io/normal/front/7/0/70d0540f-93c6-4af5-ab2d-65e6c03001c7.jpg?1783908137",
+        "name": "Snapcaster Mage",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/e/9e5b279e-4670-4a1e-87d0-3cab7e4f9e58.jpg?1783940966",
         "imageUrlBack": null
       },
       {
-        "name": "Unmarked Grave",
-        "imageUrl": "https://cards.scryfall.io/normal/front/4/9/492b368b-de32-45c1-8459-238aae54f9fc.jpg?1783926852",
+        "name": "Stock Up",
+        "imageUrl": "https://cards.scryfall.io/normal/front/0/a/0a786855-6eb4-42c0-a528-4842db46809d.jpg?1783907902",
         "imageUrlBack": null
       },
       {
-        "name": "Viscera Seer",
-        "imageUrl": "https://cards.scryfall.io/normal/front/6/1/6179f847-e334-4f7f-9a4e-0013942a394f.jpg?1783941810",
+        "name": "Thassa's Oracle",
+        "imageUrl": "https://cards.scryfall.io/normal/front/7/2/726e8b29-13e9-4138-b6a9-d2a0d8188d1c.jpg?1783931575",
         "imageUrlBack": null
       },
       {
-        "name": "Wurmcoil Engine",
-        "imageUrl": "https://cards.scryfall.io/normal/front/3/3/33672990-4860-4aa6-ac1b-f9da66f5da59.jpg?1783941691",
+        "name": "Timetwister",
+        "imageUrl": "https://cards.scryfall.io/normal/front/0/1/01bda3d7-122a-48a0-bab3-676c4a557b74.jpg?1783948574",
         "imageUrlBack": null
       },
       {
-        "name": "Yawgmoth, Thran Physician",
-        "imageUrl": "https://cards.scryfall.io/normal/front/8/6/8690cbcc-f8fd-41f7-9e28-e61c12b04014.jpg?1783933118",
+        "name": "Undercity Sewers",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/b/2b5801fb-2026-4f25-98bc-ebb2f99684b9.jpg?1786507741",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Underworld Breach",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/f/2f2374a2-21d6-4643-8602-684342d0dbfc.jpg?1783913621",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Wooded Foothills",
+        "imageUrl": "https://cards.scryfall.io/normal/front/c/d/cdad38f7-9dfa-4f1b-9fac-41ab2b253f53.jpg?1783945025",
         "imageUrlBack": null
       }
     ]
   },
-  "generated_at": "2026-11-13T21:45:14.513419"
+  "deckB": {
+    "name": "Team cube draft - June 2025",
+    "drafter": "ButterFriend",
+    "cards": [
+      {
+        "name": "Arena of Glory",
+        "imageUrl": "https://cards.scryfall.io/normal/front/d/d/dd148edc-9e43-41aa-bb50-f912115d3e72.jpg?1783911241",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Burst Lightning",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/d/2dc16614-5cf8-444d-a5ae-cac25018af68.jpg?1783942147",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Cori-Steel Cutter",
+        "imageUrl": "https://cards.scryfall.io/normal/front/4/9/490eb213-9ae2-4b45-abec-6f1dfc83792a.jpg?1783907363",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Den of the Bugbear",
+        "imageUrl": "https://cards.scryfall.io/normal/front/f/2/f231caf8-56c0-4719-a90d-5e5efbee3148.jpg?1783926435",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Esper Sentinel",
+        "imageUrl": "https://cards.scryfall.io/normal/front/f/3/f3537373-ef54-4578-9d05-6216420ee349.jpg?1783926893",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Fable of the Mirror-Breaker",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/d/6dee0388-a78d-4b3c-a0c5-25655e14115e.jpg?1783923746",
+        "imageUrlBack": "https://cards.scryfall.io/normal/back/6/d/6dee0388-a78d-4b3c-a0c5-25655e14115e.jpg?1783923746"
+      },
+      {
+        "name": "Gitaxian Probe",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/9/995486ce-58bb-4753-a812-0ca73ef1a235.jpg?1783941320",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Glimmer Lens",
+        "imageUrl": "https://cards.scryfall.io/normal/front/c/9/c9262000-e6f3-4da1-ad1c-038f65d3bef6.jpg?1783918163",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Guide of Souls",
+        "imageUrl": "https://cards.scryfall.io/normal/front/7/6/76c3cad2-1e25-4abe-878d-9194de6fcc27.jpg?1790212061",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Gut, True Soul Zealot",
+        "imageUrl": "https://cards.scryfall.io/normal/front/b/6/b6988467-8552-4ab9-9472-c5c536ed7bae.jpg?1783922637",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Monastery Swiftspear",
+        "imageUrl": "https://cards.scryfall.io/normal/front/b/8/b81c6c8b-a9cf-4866-89ba-7f8ad077b836.jpg?1783939071",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Ocelot Pride",
+        "imageUrl": "https://cards.scryfall.io/normal/front/8/5/859d2ff4-8b8c-410b-8636-7e6a539fd291.jpg?1783911176",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Oust",
+        "imageUrl": "https://cards.scryfall.io/normal/front/0/7/07313dd3-d0dc-40ca-98a3-fa4d39e5bcae.jpg?1783942004",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Overlord of the Mistmoors",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/b/6bcafc2e-cef6-412d-8c5d-1658c3337292.jpg?1783909507",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Phelia, Exuberant Shepherd",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/5/95505d46-fc4f-4e2d-8e08-380d392b74a4.jpg?1783911187",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Phlage, Titan of Fire's Fury",
+        "imageUrl": "https://cards.scryfall.io/normal/front/e/4/e419cd0b-2449-4cc5-9ead-b9e45e271700.jpg?1783911247",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Phyrexian Metamorph",
+        "imageUrl": "https://cards.scryfall.io/normal/front/d/2/d2e27911-87cb-49a0-a34f-6afe4bddd592.jpg?1783941318",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Plateau",
+        "imageUrl": "https://cards.scryfall.io/normal/front/c/6/c6ae9cff-8646-4069-8761-df734e067beb.jpg?1783948277",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Restless Bivouac",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/0/901796b2-c567-41e2-a87b-6147a966c9a8.jpg?1783915044",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Sacred Foundry",
+        "imageUrl": "https://cards.scryfall.io/normal/front/1/6/168ef687-5797-4b45-b75b-393d8117cebd.jpg?1783943590",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Screaming Nemesis",
+        "imageUrl": "https://cards.scryfall.io/normal/front/c/e/ce35e6fb-ff54-44c4-a216-7ddd37f46882.jpg?1783909465",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Slickshot Show-Off",
+        "imageUrl": "https://cards.scryfall.io/normal/front/7/0/7054012b-4f9d-44a0-aaf9-7fd3bddc7b2d.jpg?1783911814",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Solitude",
+        "imageUrl": "https://cards.scryfall.io/normal/front/f/e/febad44a-eaf0-4122-87c5-a12d17f28392.jpg?1783926772",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Stoneforge Mystic",
+        "imageUrl": "https://cards.scryfall.io/normal/front/e/0/e09165df-55bb-4a61-b8b7-c01430602938.jpg?1783937942",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Tersa Lightshatter",
+        "imageUrl": "https://cards.scryfall.io/normal/front/9/9/99e96b34-b1c4-4647-a38e-2cf1aedaaace.jpg?1783907351",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Thraben Inspector",
+        "imageUrl": "https://cards.scryfall.io/normal/front/2/b/2be39749-ad6f-4160-99eb-c677eee7f1b2.jpg?1783930206",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Touch the Spirit Realm",
+        "imageUrl": "https://cards.scryfall.io/normal/front/e/1/e16ab44e-4257-4c0c-b705-8ac1e9c1d835.jpg?1783923911",
+        "imageUrlBack": null
+      },
+      {
+        "name": "Unexpectedly Absent",
+        "imageUrl": "https://cards.scryfall.io/normal/front/6/d/6dff437b-ef68-48f7-afd3-3b72d3c56187.jpg?1783939687",
+        "imageUrlBack": null
+      }
+    ]
+  },
+  "generated_at": "2026-11-20T22:27:56.963694"
 }
